@@ -1,0 +1,2199 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-50">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Paper Plate Manufacturing ERP & Operational Report</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0fdf4',
+                            100: '#dcfce7',
+                            500: '#22c55e',
+                            600: '#16a34a',
+                            700: '#15803d',
+                            800: '#166534',
+                            900: '#14532d',
+                        },
+                        industrial: {
+                            50: '#f8fafc',
+                            100: '#f1f5f9',
+                            200: '#e2e8f0',
+                            600: '#475569',
+                            700: '#334155',
+                            800: '#1e293b',
+                            900: '#0f172a'
+                        },
+                        warm: {
+                            50: '#fffbeb',
+                            100: '#fef3c7',
+                            500: '#f59e0b',
+                            600: '#d97706',
+                            700: '#b45309'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 100%;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 380px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 340px;
+            }
+        }
+        /* Custom Scrollbar for tables */
+        .custom-scrollbar::-webkit-scrollbar {
+            height: 6px;
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+        .dark .custom-scrollbar::-webkit-scrollbar-track {
+            background: #1e293b;
+        }
+        .dark .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #475569;
+        }
+    </style>
+</head>
+<!-- Chosen Palette: Warm Industrial Neutrals (Slate background, Industrial Dark Navy, Emerald Green accent, Amber alerts, Crimson expenses) -->
+<!-- Application Structure Plan:
+    The application is designed as a single-page operational hub and double-entry accounting ERP for a Paper Plate Manufacturing plant.
+    1. Navigation & Executive Dashboard: Main hub featuring instant KPI cards (Sales, Production, Raw Stock, Debtors), Quick Action Modals, and an intuitive module navigation grid.
+    2. Raw Materials & Procurement: Supplier CRM, raw paper roll and PE film inventory, purchase order logging with auto-ledger updating.
+    3. Production & BOM Engine: Interactive Bill of Materials recipe processor, raw material deduction, finished goods increment, and wastage tracking.
+    4. Finished Goods Inventory: Variant support (6", 8", 12" Wrinkle/Silver/Printed), stock alerts, unit rate auto-population.
+    5. Sales & Invoicing: Customer registry, smart order creation with automatic rate lookups, outstanding payments ledger, invoice generator.
+    6. Expense & Cash/Bank Hub: Multi-category expense logger, Cash Book, Bank Book, and inter-account Cash ↔ Bank transfer wizard.
+    7. Double-Entry Accounting System: Automated General Journal, Chart of Accounts, Trial Balance, Profit & Loss, and Balance Sheet.
+    8. Strategic Reports & Analytics: Production vs Sales Chart.js, Inventory Valuation Chart.js, Expense Category Breakdown Chart.js, item-wise profitability analysis.
+    9. System & Backup: User switch (Admin/Operator/Accountant), JSON Export/Import backup tool, and Dark Mode toggle.
+-->
+<!-- Visualization & Content Choices:
+    - Executive Dashboard KPIs: Dynamic HTML Cards updating instantly on state changes.
+    - Production vs Sales Trend: Chart.js Line/Bar combination graph showing daily output vs order fulfillment.
+    - Expense Allocation: Chart.js Doughnut chart categorizing Labour, Electricity, Maintenance, and Freight costs.
+    - Inventory Valuation: Chart.js Stacked Bar chart comparing capital locked in Raw Materials vs Finished Inventory.
+    - Interactive BOM Calculator: Dynamic JS form calculating exact paper roll kg and film kg required per 1,000 plates.
+    - Double Entry Ledger Table: Dynamic HTML filterable views displaying Debits, Credits, and Net Balances.
+-->
+<!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+
+<body class="h-full flex flex-col font-sans text-slate-800 dark:text-slate-100 dark:bg-slate-900 transition-colors duration-200">
+
+    <!-- Header Navigation -->
+    <header class="bg-industrial-900 dark:bg-slate-950 text-white sticky top-0 z-30 shadow-md">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <!-- Brand Logo & Title -->
+                <div class="flex items-center space-x-3 cursor-pointer" onclick="switchTab('dashboard')">
+                    <span class="text-2xl">🏭</span>
+                    <div>
+                        <span class="text-xl font-black tracking-wider text-brand-500">PaperCraft</span>
+                        <span class="text-xs bg-industrial-800 text-slate-300 px-2 py-0.5 rounded border border-industrial-700 hidden sm:inline-block ml-2">ERP v2.5</span>
+                    </div>
+                </div>
+
+                <!-- Desktop Navigation Buttons -->
+                <nav class="hidden lg:flex space-x-1 text-xs font-semibold">
+                    <button onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-btn px-3 py-2 rounded-md bg-industrial-800 text-brand-500">Dashboard</button>
+                    <button onclick="switchTab('inventory')" id="nav-inventory" class="nav-btn px-3 py-2 rounded-md hover:bg-industrial-800 text-slate-300">Raw Materials</button>
+                    <button onclick="switchTab('procurement')" id="nav-procurement" class="nav-btn px-3 py-2 rounded-md hover:bg-industrial-800 text-slate-300">Procurement</button>
+                    <button onclick="switchTab('production')" id="nav-production" class="nav-btn px-3 py-2 rounded-md hover:bg-industrial-800 text-slate-300">Production</button>
+                    <button onclick="switchTab('finished')" id="nav-finished" class="nav-btn px-3 py-2 rounded-md hover:bg-industrial-800 text-slate-300">Finished Goods</button>
+                    <button onclick="switchTab('sales')" id="nav-sales" class="nav-btn px-3 py-2 rounded-md hover:bg-industrial-800 text-slate-300">Sales & CRM</button>
+                    <button onclick="switchTab('finance')" id="nav-finance" class="nav-btn px-3 py-2 rounded-md hover:bg-industrial-800 text-slate-300">Finance & Cash</button>
+                    <button onclick="switchTab('accounting')" id="nav-accounting" class="nav-btn px-3 py-2 rounded-md hover:bg-industrial-800 text-slate-300">Accounting</button>
+                    <button onclick="switchTab('reports')" id="nav-reports" class="nav-btn px-3 py-2 rounded-md hover:bg-industrial-800 text-slate-300">Reports</button>
+                    <button onclick="switchTab('settings')" id="nav-settings" class="nav-btn px-3 py-2 rounded-md hover:bg-industrial-800 text-slate-300">Settings</button>
+                </nav>
+
+                <!-- Right Quick Utilities -->
+                <div class="flex items-center space-x-2">
+                    <button onclick="toggleDarkMode()" class="p-2 text-slate-300 hover:text-white rounded-lg hover:bg-industrial-800 text-sm" title="Toggle Dark/Light Mode">
+                        <span id="dark-mode-icon">🌙</span>
+                    </button>
+                    <button onclick="openModal('quickActionModal')" class="bg-brand-600 hover:bg-brand-700 text-white font-bold py-1.5 px-3 rounded-lg text-xs sm:text-sm shadow flex items-center space-x-1">
+                        <span>⚡ Quick Entry</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mobile Scrollable Nav Bar -->
+        <div class="lg:hidden bg-industrial-800 dark:bg-slate-900 px-2 py-2 space-x-1 flex overflow-x-auto text-xs border-t border-industrial-700">
+            <button onclick="switchTab('dashboard')" id="mnav-dashboard" class="mnav-btn px-3 py-1.5 rounded text-white bg-industrial-900 whitespace-nowrap">Dashboard</button>
+            <button onclick="switchTab('inventory')" id="mnav-inventory" class="mnav-btn px-3 py-1.5 rounded text-slate-300 whitespace-nowrap">Raw Materials</button>
+            <button onclick="switchTab('procurement')" id="mnav-procurement" class="mnav-btn px-3 py-1.5 rounded text-slate-300 whitespace-nowrap">Procurement</button>
+            <button onclick="switchTab('production')" id="mnav-production" class="mnav-btn px-3 py-1.5 rounded text-slate-300 whitespace-nowrap">Production</button>
+            <button onclick="switchTab('finished')" id="mnav-finished" class="mnav-btn px-3 py-1.5 rounded text-slate-300 whitespace-nowrap">Finished Goods</button>
+            <button onclick="switchTab('sales')" id="mnav-sales" class="mnav-btn px-3 py-1.5 rounded text-slate-300 whitespace-nowrap">Sales</button>
+            <button onclick="switchTab('finance')" id="mnav-finance" class="mnav-btn px-3 py-1.5 rounded text-slate-300 whitespace-nowrap">Finance</button>
+            <button onclick="switchTab('accounting')" id="mnav-accounting" class="mnav-btn px-3 py-1.5 rounded text-slate-300 whitespace-nowrap">Accounting</button>
+            <button onclick="switchTab('reports')" id="mnav-reports" class="mnav-btn px-3 py-1.5 rounded text-slate-300 whitespace-nowrap">Reports</button>
+            <button onclick="switchTab('settings')" id="mnav-settings" class="mnav-btn px-3 py-1.5 rounded text-slate-300 whitespace-nowrap">Settings</button>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+        <!-- Low Stock Alert Header Banner -->
+        <div id="low-stock-banner" class="hidden bg-amber-50 dark:bg-amber-950/40 border-l-4 border-amber-500 p-4 rounded-r-lg shadow-sm flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <span class="text-xl text-amber-600 dark:text-amber-400">⚠️</span>
+                <div>
+                    <h4 class="text-xs font-bold uppercase tracking-wider text-amber-800 dark:text-amber-300">Inventory Alert</h4>
+                    <p class="text-sm text-amber-700 dark:text-amber-200" id="low-stock-msg">Some raw materials or finished goods are running below minimum safety buffer!</p>
+                </div>
+            </div>
+            <button onclick="switchTab('inventory')" class="text-xs font-bold text-amber-800 dark:text-amber-300 underline hover:text-amber-900">Check Stock</button>
+        </div>
+
+        <!-- ==================== TAB 1: DASHBOARD ==================== -->
+        <section id="section-dashboard" class="space-y-6">
+            <div class="bg-white dark:bg-slate-800 p-5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                    <h1 class="text-xl font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
+                        <span>Plant Operational Control Center</span>
+                    </h1>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                        Real-time paper plate manufacturing performance, raw material reserves, daily production logs, and double-entry financial status.
+                    </p>
+                </div>
+                <div class="flex items-center space-x-3 bg-slate-50 dark:bg-slate-700/50 p-2.5 rounded-lg border border-slate-200 dark:border-slate-600 text-xs">
+                    <div>
+                        <span class="text-slate-500 dark:text-slate-400 block">Active User Role:</span>
+                        <span class="font-bold text-slate-800 dark:text-slate-100" id="lbl-active-user">Admin Manager</span>
+                    </div>
+                    <span class="text-slate-300 dark:text-slate-600">|</span>
+                    <button onclick="switchTab('settings')" class="text-brand-600 dark:text-brand-400 font-semibold hover:underline">Switch</button>
+                </div>
+            </div>
+
+            <!-- Dashboard KPI Cards -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Total Sales (MTD)</p>
+                        <p class="text-2xl font-black text-slate-900 dark:text-white mt-1" id="dash-kpi-sales">₹0</p>
+                        <p class="text-xs text-emerald-600 font-semibold mt-1">▲ Invoiced Revenue</p>
+                    </div>
+                    <div class="w-12 h-12 bg-emerald-100 dark:bg-emerald-950/60 rounded-full flex items-center justify-center text-xl text-emerald-700 dark:text-emerald-400 font-bold">
+                        💰
+                    </div>
+                </div>
+
+                <div class="bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Today's Production</p>
+                        <p class="text-2xl font-black text-slate-900 dark:text-white mt-1" id="dash-kpi-prod">0 Pcs</p>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 mt-1" id="dash-kpi-wastage">Wastage: 0 kg</p>
+                    </div>
+                    <div class="w-12 h-12 bg-blue-100 dark:bg-blue-950/60 rounded-full flex items-center justify-center text-xl text-blue-700 dark:text-blue-400 font-bold">
+                        ⚙️
+                    </div>
+                </div>
+
+                <div class="bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Paper Stock Reserve</p>
+                        <p class="text-2xl font-black text-slate-900 dark:text-white mt-1" id="dash-kpi-paper">0 kg</p>
+                        <p class="text-xs text-amber-600 font-semibold mt-1" id="dash-kpi-stock-status">Status: Healthy</p>
+                    </div>
+                    <div class="w-12 h-12 bg-amber-100 dark:bg-amber-950/60 rounded-full flex items-center justify-center text-xl text-amber-700 dark:text-amber-400 font-bold">
+                        📦
+                    </div>
+                </div>
+
+                <div class="bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Customer Receivables</p>
+                        <p class="text-2xl font-black text-slate-900 dark:text-white mt-1" id="dash-kpi-debtors">₹0</p>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 mt-1" id="dash-kpi-creditors">Suppliers Due: ₹0</p>
+                    </div>
+                    <div class="w-12 h-12 bg-indigo-100 dark:bg-indigo-950/60 rounded-full flex items-center justify-center text-xl text-indigo-700 dark:text-indigo-400 font-bold">
+                        📋
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Access Navigation Cards Grid -->
+            <div>
+                <h3 class="text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3">System Modules</h3>
+                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                    <button onclick="switchTab('inventory')" class="p-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl hover:shadow-md transition text-left group">
+                        <div class="text-2xl mb-2">📜</div>
+                        <div class="text-xs font-bold text-slate-800 dark:text-slate-200 group-hover:text-brand-600">Raw Materials</div>
+                        <div class="text-[10px] text-slate-400 mt-0.5">Paper rolls, film, boxes</div>
+                    </button>
+                    <button onclick="switchTab('procurement')" class="p-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl hover:shadow-md transition text-left group">
+                        <div class="text-2xl mb-2">🚚</div>
+                        <div class="text-xs font-bold text-slate-800 dark:text-slate-200 group-hover:text-brand-600">Procurement</div>
+                        <div class="text-[10px] text-slate-400 mt-0.5">Suppliers & PO Purchases</div>
+                    </button>
+                    <button onclick="switchTab('production')" class="p-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl hover:shadow-md transition text-left group">
+                        <div class="text-2xl mb-2">🏭</div>
+                        <div class="text-xs font-bold text-slate-800 dark:text-slate-200 group-hover:text-brand-600">Production</div>
+                        <div class="text-[10px] text-slate-400 mt-0.5">BOM & Daily Manufacturing</div>
+                    </button>
+                    <button onclick="switchTab('finished')" class="p-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl hover:shadow-md transition text-left group">
+                        <div class="text-2xl mb-2">🍽️</div>
+                        <div class="text-xs font-bold text-slate-800 dark:text-slate-200 group-hover:text-brand-600">Finished Goods</div>
+                        <div class="text-[10px] text-slate-400 mt-0.5">Plate variants & stock</div>
+                    </button>
+                    <button onclick="switchTab('sales')" class="p-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl hover:shadow-md transition text-left group">
+                        <div class="text-2xl mb-2">🧾</div>
+                        <div class="text-xs font-bold text-slate-800 dark:text-slate-200 group-hover:text-brand-600">Sales & CRM</div>
+                        <div class="text-[10px] text-slate-400 mt-0.5">Invoices & Customers</div>
+                    </button>
+                    <button onclick="switchTab('finance')" class="p-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl hover:shadow-md transition text-left group">
+                        <div class="text-2xl mb-2">💸</div>
+                        <div class="text-xs font-bold text-slate-800 dark:text-slate-200 group-hover:text-brand-600">Finance & Expenses</div>
+                        <div class="text-[10px] text-slate-400 mt-0.5">Cash book & Bank transfers</div>
+                    </button>
+                    <button onclick="switchTab('accounting')" class="p-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl hover:shadow-md transition text-left group">
+                        <div class="text-2xl mb-2">📖</div>
+                        <div class="text-xs font-bold text-slate-800 dark:text-slate-200 group-hover:text-brand-600">Accounting</div>
+                        <div class="text-[10px] text-slate-400 mt-0.5">Journal, Ledger & P&L</div>
+                    </button>
+                    <button onclick="switchTab('reports')" class="p-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl hover:shadow-md transition text-left group">
+                        <div class="text-2xl mb-2">📊</div>
+                        <div class="text-xs font-bold text-slate-800 dark:text-slate-200 group-hover:text-brand-600">Reports</div>
+                        <div class="text-[10px] text-slate-400 mt-0.5">Analytics & Profitability</div>
+                    </button>
+                    <button onclick="switchTab('settings')" class="p-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl hover:shadow-md transition text-left group">
+                        <div class="text-2xl mb-2">⚙️</div>
+                        <div class="text-xs font-bold text-slate-800 dark:text-slate-200 group-hover:text-brand-600">Settings</div>
+                        <div class="text-[10px] text-slate-400 mt-0.5">Backup, restore & users</div>
+                    </button>
+                    <button onclick="openModal('quickActionModal')" class="p-4 bg-brand-50 dark:bg-brand-950/30 border border-brand-200 dark:border-brand-800 rounded-xl hover:shadow-md transition text-left group">
+                        <div class="text-2xl mb-2">⚡</div>
+                        <div class="text-xs font-bold text-brand-700 dark:text-brand-400">Quick Entry</div>
+                        <div class="text-[10px] text-brand-600/80 dark:text-brand-500 mt-0.5">Shortcut dialog</div>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Visual Charts Dashboard Grid -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="bg-white dark:bg-slate-800 p-5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-sm font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                            <span>Production vs Sales Volume (Pcs)</span>
+                        </h3>
+                        <span class="text-xs text-slate-400">7-Day Operational Trend</span>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="chartProdSales"></canvas>
+                    </div>
+                </div>
+
+                <div class="bg-white dark:bg-slate-800 p-5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-sm font-bold text-slate-800 dark:text-white">Expense Distribution Breakdown</h3>
+                        <span class="text-xs text-slate-400">Current Month</span>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="chartExpenses"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Activity Timeline -->
+            <div class="bg-white dark:bg-slate-800 p-5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
+                <h3 class="text-sm font-bold text-slate-800 dark:text-white mb-3">Live Plant Activity Log</h3>
+                <div class="overflow-x-auto custom-scrollbar">
+                    <table class="w-full text-left text-xs">
+                        <thead>
+                            <tr class="border-b border-slate-200 dark:border-slate-700 text-slate-400 font-semibold uppercase">
+                                <th class="py-2 px-3">Time</th>
+                                <th class="py-2 px-3">Type</th>
+                                <th class="py-2 px-3">Description</th>
+                                <th class="py-2 px-3 text-right">Amount / Qty</th>
+                            </tr>
+                        </thead>
+                        <tbody id="dash-activity-body" class="divide-y divide-slate-100 dark:divide-slate-700/50">
+                            <!-- Populated dynamically via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== TAB 2: RAW MATERIALS ==================== -->
+        <section id="section-inventory" class="space-y-6 hidden">
+            <div class="bg-white dark:bg-slate-800 p-5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                    <h2 class="text-lg font-bold text-slate-900 dark:text-white">Raw Material Stocks & Reorder Management</h2>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Manage paper rolls (80-250 GSM), PE lamination film rolls, and corrugated packing boxes. Stocks auto-update upon PO arrivals and production runs.</p>
+                </div>
+                <button onclick="openModal('addRawMaterialModal')" class="bg-brand-600 hover:bg-brand-700 text-white font-bold px-3 py-2 rounded-lg text-xs shadow">
+                    + Add New Raw Material
+                </button>
+            </div>
+
+            <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+                <div class="p-4 border-b border-slate-200 dark:border-slate-700 flex flex-col sm:flex-row items-center justify-between gap-3">
+                    <input type="text" id="search-raw" oninput="renderRawMaterials()" placeholder="Search raw materials..." class="w-full sm:w-64 px-3 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs">
+                    <span class="text-xs text-slate-500" id="raw-count-lbl">Showing 0 Items</span>
+                </div>
+                <div class="overflow-x-auto custom-scrollbar">
+                    <table class="w-full text-left text-xs">
+                        <thead class="bg-slate-50 dark:bg-slate-900 text-slate-500 dark:text-slate-400 uppercase font-semibold">
+                            <tr>
+                                <th class="py-3 px-4">Material Code & Name</th>
+                                <th class="py-3 px-4">Category</th>
+                                <th class="py-3 px-4">Current Stock</th>
+                                <th class="py-3 px-4">Safety Reorder Level</th>
+                                <th class="py-3 px-4">Est. Purchase Cost</th>
+                                <th class="py-3 px-4">Stock Status</th>
+                                <th class="py-3 px-4 text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="raw-material-tbl" class="divide-y divide-slate-100 dark:divide-slate-700/50">
+                            <!-- JS Populated -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== TAB 3: PROCUREMENT ==================== -->
+        <section id="section-procurement" class="space-y-6 hidden">
+            <div class="bg-white dark:bg-slate-800 p-5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                    <h2 class="text-lg font-bold text-slate-900 dark:text-white">Supplier Directory & Raw Material Purchases</h2>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Log purchase invoices from paper mills, track supplier accounts payable balances, and record payments.</p>
+                </div>
+                <div class="flex space-x-2">
+                    <button onclick="openModal('addSupplierModal')" class="bg-slate-800 hover:bg-slate-900 text-white font-bold px-3 py-2 rounded-lg text-xs shadow">
+                        + New Supplier
+                    </button>
+                    <button onclick="openModal('purchaseModal')" class="bg-brand-600 hover:bg-brand-700 text-white font-bold px-3 py-2 rounded-lg text-xs shadow">
+                        + Log Purchase Order
+                    </button>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Supplier Balances -->
+                <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-4 space-y-3">
+                    <h3 class="text-sm font-bold text-slate-800 dark:text-white">Supplier Accounts Payable</h3>
+                    <div id="supplier-list-container" class="space-y-2 max-h-96 overflow-y-auto custom-scrollbar">
+                        <!-- JS populated -->
+                    </div>
+                </div>
+
+                <!-- Purchase Logs Table -->
+                <div class="lg:col-span-2 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+                    <div class="p-4 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center">
+                        <h3 class="text-sm font-bold text-slate-800 dark:text-white">Recent Purchase Invoices</h3>
+                    </div>
+                    <div class="overflow-x-auto custom-scrollbar">
+                        <table class="w-full text-left text-xs">
+                            <thead class="bg-slate-50 dark:bg-slate-900 text-slate-500 uppercase font-semibold">
+                                <tr>
+                                    <th class="py-2.5 px-3">Inv # & Date</th>
+                                    <th class="py-2.5 px-3">Supplier</th>
+                                    <th class="py-2.5 px-3">Item Received</th>
+                                    <th class="py-2.5 px-3">Qty</th>
+                                    <th class="py-2.5 px-3">Total Cost</th>
+                                    <th class="py-2.5 px-3">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="purchases-tbl" class="divide-y divide-slate-100 dark:divide-slate-700/50">
+                                <!-- JS Populated -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== TAB 4: PRODUCTION ==================== -->
+        <section id="section-production" class="space-y-6 hidden">
+            <div class="bg-white dark:bg-slate-800 p-5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                    <h2 class="text-lg font-bold text-slate-900 dark:text-white">BOM Recipe Engine & Daily Manufacturing Logs</h2>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                        Select a finished plate size to automatically compute raw paper roll and lamination consumption based on standard Bill of Materials (BOM).
+                    </p>
+                </div>
+                <button onclick="openModal('productionModal')" class="bg-brand-600 hover:bg-brand-700 text-white font-bold px-3 py-2 rounded-lg text-xs shadow flex items-center space-x-1">
+                    <span>⚙️ Log Production Run</span>
+                </button>
+            </div>
+
+            <!-- BOM Interactive Pre-calculator Tool -->
+            <div class="bg-gradient-to-r from-industrial-900 to-slate-800 text-white p-5 rounded-xl shadow-md space-y-4">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between border-b border-industrial-700 pb-3 gap-2">
+                    <div>
+                        <h3 class="text-sm font-bold text-brand-400">⚡ Interactive BOM Production Calculator</h3>
+                        <p class="text-xs text-slate-300">Pre-calculate required raw paper rolls and unit margin before starting a batch.</p>
+                    </div>
+                    <div class="text-xs bg-industrial-800 px-3 py-1 rounded text-slate-300 border border-industrial-700">
+                        Formula: 1,000 Pcs 6" Wrinkle Plate ≈ 8.5 kg Paper + 0.8 kg PE Film
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-xs text-slate-300 mb-1">Target Finished Plate Variant</label>
+                        <select id="bom-calc-fg" onchange="calculateBOMEstimates()" class="w-full px-3 py-2 bg-industrial-800 text-white border border-industrial-700 rounded-lg text-xs">
+                            <!-- JS Populated -->
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-slate-300 mb-1">Planned Target Quantity (Pcs)</label>
+                        <input type="number" id="bom-calc-qty" value="5000" step="500" oninput="calculateBOMEstimates()" class="w-full px-3 py-2 bg-industrial-800 text-white border border-industrial-700 rounded-lg text-xs">
+                    </div>
+                    <div class="bg-industrial-800/80 p-3 rounded-lg border border-industrial-700 text-xs space-y-1">
+                        <div class="text-slate-400">Estimated Material Requirements:</div>
+                        <div class="font-bold text-brand-400" id="bom-res-paper">Paper Roll Required: 0 kg</div>
+                        <div class="font-bold text-blue-400" id="bom-res-boxes">Packing Boxes Required: 0 Boxes</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Production History Table -->
+            <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+                <div class="p-4 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center">
+                    <h3 class="text-sm font-bold text-slate-800 dark:text-white">Daily Manufacturing Logs & Wastage Audit</h3>
+                </div>
+                <div class="overflow-x-auto custom-scrollbar">
+                    <table class="w-full text-left text-xs">
+                        <thead class="bg-slate-50 dark:bg-slate-900 text-slate-500 uppercase font-semibold">
+                            <tr>
+                                <th class="py-3 px-4">Batch ID & Date</th>
+                                <th class="py-3 px-4">Finished Plate Output</th>
+                                <th class="py-3 px-4">Qty Produced</th>
+                                <th class="py-3 px-4">Paper Roll Consumed</th>
+                                <th class="py-3 px-4">Wastage / Scrap (kg)</th>
+                                <th class="py-3 px-4">Operator</th>
+                            </tr>
+                        </thead>
+                        <tbody id="production-tbl" class="divide-y divide-slate-100 dark:divide-slate-700/50">
+                            <!-- JS Populated -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== TAB 5: FINISHED GOODS ==================== -->
+        <section id="section-finished" class="space-y-6 hidden">
+            <div class="bg-white dark:bg-slate-800 p-5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                    <h2 class="text-lg font-bold text-slate-900 dark:text-white">Finished Goods Inventory & Variants</h2>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Catalog paper plates by size (4", 6", 8", 12"), finish (Wrinkle, Silver, Printed, Gold), selling price, and buffer levels.</p>
+                </div>
+                <button onclick="openModal('addFinishedGoodModal')" class="bg-brand-600 hover:bg-brand-700 text-white font-bold px-3 py-2 rounded-lg text-xs shadow">
+                    + Add New Plate Variant
+                </button>
+            </div>
+
+            <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+                <div class="p-4 border-b border-slate-200 dark:border-slate-700 flex flex-col sm:flex-row items-center justify-between gap-3">
+                    <input type="text" id="search-fg" oninput="renderFinishedGoods()" placeholder="Filter variants..." class="w-full sm:w-64 px-3 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs">
+                    <span class="text-xs text-slate-500" id="fg-count-lbl">0 Variants Listed</span>
+                </div>
+                <div class="overflow-x-auto custom-scrollbar">
+                    <table class="w-full text-left text-xs">
+                        <thead class="bg-slate-50 dark:bg-slate-900 text-slate-500 uppercase font-semibold">
+                            <tr>
+                                <th class="py-3 px-4">Item Code & Plate Name</th>
+                                <th class="py-3 px-4">Size & Finish Variant</th>
+                                <th class="py-3 px-4">Finished Stock (Pcs)</th>
+                                <th class="py-3 px-4">Default Selling Price / 100 Pcs</th>
+                                <th class="py-3 px-4">Buffer Alert Level</th>
+                                <th class="py-3 px-4 text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="finished-goods-tbl" class="divide-y divide-slate-100 dark:divide-slate-700/50">
+                            <!-- JS Populated -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== TAB 6: SALES & CRM ==================== -->
+        <section id="section-sales" class="space-y-6 hidden">
+            <div class="bg-white dark:bg-slate-800 p-5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                    <h2 class="text-lg font-bold text-slate-900 dark:text-white">Customer CRM & Sales Invoicing</h2>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Issue sales invoices to distributors, track customer trade receivables, and record cash/bank receipts.</p>
+                </div>
+                <div class="flex space-x-2">
+                    <button onclick="openModal('addCustomerModal')" class="bg-slate-800 hover:bg-slate-900 text-white font-bold px-3 py-2 rounded-lg text-xs shadow">
+                        + New Customer
+                    </button>
+                    <button onclick="openModal('salesModal')" class="bg-brand-600 hover:bg-brand-700 text-white font-bold px-3 py-2 rounded-lg text-xs shadow">
+                        + Generate Sales Invoice
+                    </button>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Customer Accounts Receivables -->
+                <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-4 space-y-3">
+                    <h3 class="text-sm font-bold text-slate-800 dark:text-white">Distributor Accounts Receivable</h3>
+                    <div id="customer-list-container" class="space-y-2 max-h-96 overflow-y-auto custom-scrollbar">
+                        <!-- JS populated -->
+                    </div>
+                </div>
+
+                <!-- Invoices Table -->
+                <div class="lg:col-span-2 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+                    <div class="p-4 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center">
+                        <h3 class="text-sm font-bold text-slate-800 dark:text-white">Sales Invoice History</h3>
+                    </div>
+                    <div class="overflow-x-auto custom-scrollbar">
+                        <table class="w-full text-left text-xs">
+                            <thead class="bg-slate-50 dark:bg-slate-900 text-slate-500 uppercase font-semibold">
+                                <tr>
+                                    <th class="py-2.5 px-3">Inv # & Date</th>
+                                    <th class="py-2.5 px-3">Customer</th>
+                                    <th class="py-2.5 px-3">Items Sold</th>
+                                    <th class="py-2.5 px-3">Grand Total</th>
+                                    <th class="py-2.5 px-3">Payment</th>
+                                    <th class="py-2.5 px-3 text-right">Invoice Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="sales-tbl" class="divide-y divide-slate-100 dark:divide-slate-700/50">
+                                <!-- JS Populated -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== TAB 7: FINANCE & EXPENSES ==================== -->
+        <section id="section-finance" class="space-y-6 hidden">
+            <div class="bg-white dark:bg-slate-800 p-5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                    <h2 class="text-lg font-bold text-slate-900 dark:text-white">Finance, Cash Book & Operational Expenses</h2>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Manage physical factory cash, bank accounts, inter-account transfers, and log operational expenses (Labour, Electricity, Machine Repair, Freight).</p>
+                </div>
+                <div class="flex space-x-2">
+                    <button onclick="openModal('transferModal')" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-3 py-2 rounded-lg text-xs shadow">
+                        🔄 Cash ↔ Bank Transfer
+                    </button>
+                    <button onclick="openModal('expenseModal')" class="bg-brand-600 hover:bg-brand-700 text-white font-bold px-3 py-2 rounded-lg text-xs shadow">
+                        + Log Factory Expense
+                    </button>
+                </div>
+            </div>
+
+            <!-- Cash & Bank Balances Summary Cards -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="bg-gradient-to-br from-emerald-600 to-emerald-800 text-white p-5 rounded-xl shadow-sm flex items-center justify-between">
+                    <div>
+                        <p class="text-xs uppercase font-bold text-emerald-200 tracking-wider">Physical Cash in Till</p>
+                        <p class="text-3xl font-black mt-1" id="fin-cash-bal">₹0</p>
+                        <p class="text-xs text-emerald-100 mt-1">Daily operational petty cash</p>
+                    </div>
+                    <div class="text-4xl">💵</div>
+                </div>
+                <div class="bg-gradient-to-br from-blue-600 to-blue-800 text-white p-5 rounded-xl shadow-sm flex items-center justify-between">
+                    <div>
+                        <p class="text-xs uppercase font-bold text-blue-200 tracking-wider">Current Bank Balance</p>
+                        <p class="text-3xl font-black mt-1" id="fin-bank-bal">₹0</p>
+                        <p class="text-xs text-blue-100 mt-1">Primary operational bank account</p>
+                    </div>
+                    <div class="text-4xl">🏦</div>
+                </div>
+            </div>
+
+            <!-- Expense Ledger Table -->
+            <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+                <div class="p-4 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center">
+                    <h3 class="text-sm font-bold text-slate-800 dark:text-white">Factory Expense Ledger</h3>
+                </div>
+                <div class="overflow-x-auto custom-scrollbar">
+                    <table class="w-full text-left text-xs">
+                        <thead class="bg-slate-50 dark:bg-slate-900 text-slate-500 uppercase font-semibold">
+                            <tr>
+                                <th class="py-3 px-4">Date</th>
+                                <th class="py-3 px-4">Expense Category</th>
+                                <th class="py-3 px-4">Description / Notes</th>
+                                <th class="py-3 px-4">Payment Method</th>
+                                <th class="py-3 px-4 text-right">Amount (₹)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="expenses-tbl" class="divide-y divide-slate-100 dark:divide-slate-700/50">
+                            <!-- JS Populated -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== TAB 8: ACCOUNTING ==================== -->
+        <section id="section-accounting" class="space-y-6 hidden">
+            <div class="bg-white dark:bg-slate-800 p-5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                    <h2 class="text-lg font-bold text-slate-900 dark:text-white">Automated Double-Entry Accounting System</h2>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Every transaction (Purchase, Production run, Sale, Payment, Expense) automatically creates balanced Journal Entries across Assets, Liabilities, Revenue, and Expenses.</p>
+                </div>
+                <!-- Sub-tab Navigation for Accounting -->
+                <div class="flex space-x-1 bg-slate-100 dark:bg-slate-900 p-1 rounded-lg text-xs font-bold">
+                    <button onclick="switchAccTab('journal')" id="acctab-journal" class="px-3 py-1.5 rounded bg-white dark:bg-slate-800 text-brand-600 shadow-sm">Journal</button>
+                    <button onclick="switchAccTab('coa')" id="acctab-coa" class="px-3 py-1.5 rounded hover:text-brand-600">Chart of Accounts</button>
+                    <button onclick="switchAccTab('pnl')" id="acctab-pnl" class="px-3 py-1.5 rounded hover:text-brand-600">Profit & Loss</button>
+                    <button onclick="switchAccTab('bs')" id="acctab-bs" class="px-3 py-1.5 rounded hover:text-brand-600">Balance Sheet</button>
+                </div>
+            </div>
+
+            <!-- Sub View: General Journal -->
+            <div id="subacc-journal" class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+                <div class="p-4 border-b border-slate-200 dark:border-slate-700">
+                    <h3 class="text-sm font-bold text-slate-800 dark:text-white">General Accounting Journal Entries</h3>
+                </div>
+                <div class="overflow-x-auto custom-scrollbar">
+                    <table class="w-full text-left text-xs">
+                        <thead class="bg-slate-50 dark:bg-slate-900 text-slate-500 uppercase font-semibold">
+                            <tr>
+                                <th class="py-3 px-4">Entry # & Date</th>
+                                <th class="py-3 px-4">Description</th>
+                                <th class="py-3 px-4">Account Debited</th>
+                                <th class="py-3 px-4">Account Credited</th>
+                                <th class="py-3 px-4 text-right">Amount (₹)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="journal-tbl" class="divide-y divide-slate-100 dark:divide-slate-700/50">
+                            <!-- JS Populated -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Sub View: Chart of Accounts -->
+            <div id="subacc-coa" class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-5 space-y-4 hidden">
+                <h3 class="text-sm font-bold text-slate-800 dark:text-white">Chart of Accounts Ledger Balances</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4" id="coa-grid-container">
+                    <!-- JS Populated -->
+                </div>
+            </div>
+
+            <!-- Sub View: Profit & Loss Statement -->
+            <div id="subacc-pnl" class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-6 space-y-4 hidden">
+                <div class="border-b border-slate-200 dark:border-slate-700 pb-3 flex justify-between items-center">
+                    <div>
+                        <h3 class="text-base font-bold text-slate-900 dark:text-white">Profit & Loss Statement (Income Statement)</h3>
+                        <p class="text-xs text-slate-500">Calculated dynamically from real-time sales and factory expenses.</p>
+                    </div>
+                    <span class="text-xs font-bold bg-brand-100 dark:bg-brand-950 text-brand-800 dark:text-brand-300 px-3 py-1 rounded">Real-Time</span>
+                </div>
+                <div class="max-w-2xl mx-auto space-y-3 text-xs">
+                    <div class="flex justify-between py-2 border-b border-slate-100 dark:border-slate-700 font-bold text-slate-800 dark:text-slate-200">
+                        <span>Gross Sales Revenue</span>
+                        <span id="pnl-revenue" class="text-emerald-600">₹0</span>
+                    </div>
+                    <div class="flex justify-between py-2 border-b border-slate-100 dark:border-slate-700 text-slate-600 dark:text-slate-400 pl-4">
+                        <span>Less: Estimated Cost of Goods Sold (COGS - Raw Materials)</span>
+                        <span id="pnl-cogs" class="text-red-500">- ₹0</span>
+                    </div>
+                    <div class="flex justify-between py-2 border-b border-slate-200 dark:border-slate-700 font-extrabold text-sm text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-900 px-3 rounded">
+                        <span>Gross Profit</span>
+                        <span id="pnl-grossprofit">₹0</span>
+                    </div>
+                    <div class="pt-2 font-bold text-slate-700 dark:text-slate-300">Operational Expenses:</div>
+                    <div class="flex justify-between py-1 text-slate-500 pl-4">
+                        <span>Labour & Factory Salaries</span>
+                        <span id="pnl-exp-labour">₹0</span>
+                    </div>
+                    <div class="flex justify-between py-1 text-slate-500 pl-4">
+                        <span>Electricity & Power Utilities</span>
+                        <span id="pnl-exp-power">₹0</span>
+                    </div>
+                    <div class="flex justify-between py-1 text-slate-500 pl-4">
+                        <span>Machine Repairs & Freight</span>
+                        <span id="pnl-exp-maint">₹0</span>
+                    </div>
+                    <div class="flex justify-between py-2 border-b border-slate-200 dark:border-slate-700 font-extrabold text-base text-brand-600 bg-brand-50 dark:bg-brand-950/50 p-3 rounded">
+                        <span>Net Profit / (Loss)</span>
+                        <span id="pnl-netprofit">₹0</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sub View: Balance Sheet -->
+            <div id="subacc-bs" class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-6 space-y-4 hidden">
+                <div class="border-b border-slate-200 dark:border-slate-700 pb-3">
+                    <h3 class="text-base font-bold text-slate-900 dark:text-white">Balance Sheet Statement</h3>
+                    <p class="text-xs text-slate-500">Summary of plant assets, accounts payable liabilities, and retained equity.</p>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs">
+                    <!-- Assets -->
+                    <div class="space-y-2 border border-slate-200 dark:border-slate-700 p-4 rounded-xl">
+                        <h4 class="font-bold text-slate-900 dark:text-white text-sm border-b pb-2 text-emerald-600">Assets</h4>
+                        <div class="flex justify-between py-1"><span>Cash in Till</span><span id="bs-asset-cash">₹0</span></div>
+                        <div class="flex justify-between py-1"><span>Bank Account Balance</span><span id="bs-asset-bank">₹0</span></div>
+                        <div class="flex justify-between py-1"><span>Accounts Receivable (Customers)</span><span id="bs-asset-ar">₹0</span></div>
+                        <div class="flex justify-between py-1"><span>Raw Materials Inventory Value</span><span id="bs-asset-raw">₹0</span></div>
+                        <div class="flex justify-between py-1"><span>Finished Goods Inventory Value</span><span id="bs-asset-fg">₹0</span></div>
+                        <div class="flex justify-between py-2 border-t font-bold text-slate-900 dark:text-white text-sm"><span>Total Assets</span><span id="bs-asset-total">₹0</span></div>
+                    </div>
+                    <!-- Liabilities & Equity -->
+                    <div class="space-y-2 border border-slate-200 dark:border-slate-700 p-4 rounded-xl">
+                        <h4 class="font-bold text-slate-900 dark:text-white text-sm border-b pb-2 text-indigo-600">Liabilities & Equity</h4>
+                        <div class="flex justify-between py-1"><span>Accounts Payable (Suppliers)</span><span id="bs-liab-ap">₹0</span></div>
+                        <div class="flex justify-between py-1"><span>Initial Working Capital</span><span id="bs-equity-cap">₹500,000</span></div>
+                        <div class="flex justify-between py-1"><span>Retained Earnings / Profit</span><span id="bs-equity-retained">₹0</span></div>
+                        <div class="flex justify-between py-2 border-t font-bold text-slate-900 dark:text-white text-sm"><span>Total Liabilities & Equity</span><span id="bs-liab-total">₹0</span></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== TAB 9: REPORTS ==================== -->
+        <section id="section-reports" class="space-y-6 hidden">
+            <div class="bg-white dark:bg-slate-800 p-5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
+                <h2 class="text-lg font-bold text-slate-900 dark:text-white">Strategic Analytics & Stock Valuation</h2>
+                <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Deep dive operational metrics, inventory capital distribution, and item profitability breakdown.</p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Stock Valuation Chart -->
+                <div class="bg-white dark:bg-slate-800 p-5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm space-y-3">
+                    <h3 class="text-sm font-bold text-slate-800 dark:text-white">Inventory Capital Locked (Valuation)</h3>
+                    <div class="chart-container">
+                        <canvas id="chartStockValuation"></canvas>
+                    </div>
+                </div>
+
+                <!-- Item Profitability Table -->
+                <div class="bg-white dark:bg-slate-800 p-5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm space-y-3">
+                    <h3 class="text-sm font-bold text-slate-800 dark:text-white">Variant Costing & Estimated Profit Margins</h3>
+                    <div class="overflow-x-auto custom-scrollbar">
+                        <table class="w-full text-left text-xs">
+                            <thead class="bg-slate-50 dark:bg-slate-900 text-slate-500 uppercase font-semibold">
+                                <tr>
+                                    <th class="py-2 px-3">Plate Variant</th>
+                                    <th class="py-2 px-3">Selling / 100 Pcs</th>
+                                    <th class="py-2 px-3">Est. BOM Material Cost</th>
+                                    <th class="py-2 px-3">Gross Margin</th>
+                                </tr>
+                            </thead>
+                            <tbody id="profitability-tbl" class="divide-y divide-slate-100 dark:divide-slate-700/50">
+                                <!-- JS Populated -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== TAB 10: SETTINGS & BACKUP ==================== -->
+        <section id="section-settings" class="space-y-6 hidden">
+            <div class="bg-white dark:bg-slate-800 p-5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
+                <h2 class="text-lg font-bold text-slate-900 dark:text-white">System Settings, User Roles & Data Backup</h2>
+                <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Switch permissions, export full database backup to JSON, or restore previous states.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- User Role Switcher -->
+                <div class="bg-white dark:bg-slate-800 p-5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm space-y-3">
+                    <h3 class="text-sm font-bold text-slate-800 dark:text-white">Active User Profile Role</h3>
+                    <p class="text-xs text-slate-500">Switch current active role to test operational permissions.</p>
+                    <select id="user-role-select" onchange="changeUserRole()" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-semibold">
+                        <option value="Admin Manager">Admin Manager (Full Access)</option>
+                        <option value="Plant Operator">Plant Operator (Production & Raw Stocks Only)</option>
+                        <option value="Accountant">Factory Accountant (Finance & Reports Only)</option>
+                    </select>
+                </div>
+
+                <!-- Backup & Restore -->
+                <div class="bg-white dark:bg-slate-800 p-5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm space-y-3">
+                    <h3 class="text-sm font-bold text-slate-800 dark:text-white">Database Backup & Recovery</h3>
+                    <p class="text-xs text-slate-500">Export state to a JSON file or restore standard demo data.</p>
+                    <div class="flex flex-col space-y-2">
+                        <button onclick="exportDataBackup()" class="bg-slate-800 hover:bg-slate-900 text-white font-bold py-2 px-3 rounded-lg text-xs shadow flex items-center justify-center space-x-1">
+                            <span>📥 Download JSON Backup</span>
+                        </button>
+                        <button onclick="resetToSampleData()" class="bg-amber-600 hover:bg-amber-700 text-white font-bold py-2 px-3 rounded-lg text-xs shadow flex items-center justify-center space-x-1">
+                            <span>🔄 Reset Sample Factory Data</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Dark Mode & Appearance -->
+                <div class="bg-white dark:bg-slate-800 p-5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm space-y-3">
+                    <h3 class="text-sm font-bold text-slate-800 dark:text-white">System Preferences</h3>
+                    <div class="flex items-center justify-between py-2">
+                        <span class="text-xs font-semibold">Dark Theme Mode</span>
+                        <button onclick="toggleDarkMode()" class="bg-slate-200 dark:bg-slate-700 px-3 py-1 rounded text-xs font-bold">Toggle Theme</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- ==================== MODALS & POPUPS ==================== -->
+
+    <!-- Quick Action Modal -->
+    <div id="quickActionModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-white dark:bg-slate-800 rounded-xl shadow-xl max-w-md w-full p-5 space-y-4 border border-slate-200 dark:border-slate-700">
+            <div class="flex justify-between items-center border-b border-slate-200 dark:border-slate-700 pb-3">
+                <h3 class="text-sm font-bold text-slate-900 dark:text-white">⚡ Plant Quick Entry Shortcuts</h3>
+                <button onclick="closeModal('quickActionModal')" class="text-slate-400 hover:text-slate-600">✕</button>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <button onclick="closeModal('quickActionModal'); openModal('productionModal')" class="p-3 bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 rounded-lg text-left hover:bg-blue-100">
+                    <div class="text-lg">⚙️</div>
+                    <div class="text-xs font-bold text-blue-900 dark:text-blue-200">Log Production</div>
+                </button>
+                <button onclick="closeModal('quickActionModal'); openModal('salesModal')" class="p-3 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-lg text-left hover:bg-emerald-100">
+                    <div class="text-lg">🧾</div>
+                    <div class="text-xs font-bold text-emerald-900 dark:text-emerald-200">Generate Sale Invoice</div>
+                </button>
+                <button onclick="closeModal('quickActionModal'); openModal('purchaseModal')" class="p-3 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-lg text-left hover:bg-amber-100">
+                    <div class="text-lg">📦</div>
+                    <div class="text-xs font-bold text-amber-900 dark:text-amber-200">Log Raw Purchase</div>
+                </button>
+                <button onclick="closeModal('quickActionModal'); openModal('expenseModal')" class="p-3 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 rounded-lg text-left hover:bg-rose-100">
+                    <div class="text-lg">💸</div>
+                    <div class="text-xs font-bold text-rose-900 dark:text-rose-200">Log Factory Expense</div>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Production Run Modal -->
+    <div id="productionModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-white dark:bg-slate-800 rounded-xl shadow-xl max-w-lg w-full p-5 space-y-4 border border-slate-200 dark:border-slate-700">
+            <div class="flex justify-between items-center border-b border-slate-200 dark:border-slate-700 pb-3">
+                <h3 class="text-sm font-bold text-slate-900 dark:text-white">⚙️ Log Batch Production Run</h3>
+                <button onclick="closeModal('productionModal')" class="text-slate-400 hover:text-slate-600">✕</button>
+            </div>
+            <form onsubmit="handleProductionSubmit(event)" class="space-y-3 text-xs">
+                <div>
+                    <label class="block font-semibold mb-1">Target Finished Plate Variant</label>
+                    <select id="prod-fg-select" required class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg">
+                        <!-- JS populated -->
+                    </select>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-semibold mb-1">Quantity Produced (Pcs)</label>
+                        <input type="number" id="prod-qty" required min="100" step="100" value="2000" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block font-semibold mb-1">Raw Material Wastage (kg)</label>
+                        <input type="number" id="prod-wastage" required min="0" step="0.1" value="1.5" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg">
+                    </div>
+                </div>
+                <div>
+                    <label class="block font-semibold mb-1">Operator / Shift Note</label>
+                    <input type="text" id="prod-note" placeholder="Shift A - Machine 2" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg">
+                </div>
+                <div class="bg-amber-50 dark:bg-amber-950/40 p-3 rounded-lg border border-amber-200 text-[11px] text-amber-800 dark:text-amber-300">
+                    * Automated Action: Deducts required paper roll kg from Raw Materials & increments Finished Plate stock.
+                </div>
+                <div class="flex justify-end space-x-2 pt-2">
+                    <button type="button" onclick="closeModal('productionModal')" class="px-3 py-2 rounded bg-slate-200 dark:bg-slate-700 font-bold">Cancel</button>
+                    <button type="submit" class="px-4 py-2 rounded bg-brand-600 hover:bg-brand-700 text-white font-bold">Confirm & Log</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Sales Invoice Modal -->
+    <div id="salesModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-white dark:bg-slate-800 rounded-xl shadow-xl max-w-lg w-full p-5 space-y-4 border border-slate-200 dark:border-slate-700">
+            <div class="flex justify-between items-center border-b border-slate-200 dark:border-slate-700 pb-3">
+                <h3 class="text-sm font-bold text-slate-900 dark:text-white">🧾 Generate Sales Invoice</h3>
+                <button onclick="closeModal('salesModal')" class="text-slate-400 hover:text-slate-600">✕</button>
+            </div>
+            <form onsubmit="handleSalesSubmit(event)" class="space-y-3 text-xs">
+                <div>
+                    <label class="block font-semibold mb-1">Select Customer</label>
+                    <select id="sale-cust-select" required class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg">
+                        <!-- JS Populated -->
+                    </select>
+                </div>
+                <div>
+                    <label class="block font-semibold mb-1">Plate Item Sold</label>
+                    <select id="sale-fg-select" onchange="updateSaleRatePreview()" required class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg">
+                        <!-- JS Populated -->
+                    </select>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-semibold mb-1">Quantity Sold (Pcs)</label>
+                        <input type="number" id="sale-qty" oninput="updateSaleRatePreview()" required min="100" step="100" value="1000" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block font-semibold mb-1">Selling Rate / 100 Pcs (₹)</label>
+                        <input type="number" id="sale-rate" oninput="updateSaleRatePreview()" required step="0.1" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg">
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-semibold mb-1">Payment Mode</label>
+                        <select id="sale-paymode" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg">
+                            <option value="Credit">Credit (Add to Customer Due)</option>
+                            <option value="Cash">Cash Received Immediately</option>
+                            <option value="Bank">Bank Wire / UPI Received</option>
+                        </select>
+                    </div>
+                    <div class="bg-slate-100 dark:bg-slate-900 p-2 rounded-lg flex flex-col justify-center">
+                        <span class="text-slate-400 text-[10px]">Total Invoice Value:</span>
+                        <span class="font-bold text-sm text-brand-600" id="sale-total-preview">₹0</span>
+                    </div>
+                </div>
+                <div class="flex justify-end space-x-2 pt-2">
+                    <button type="button" onclick="closeModal('salesModal')" class="px-3 py-2 rounded bg-slate-200 dark:bg-slate-700 font-bold">Cancel</button>
+                    <button type="submit" class="px-4 py-2 rounded bg-brand-600 hover:bg-brand-700 text-white font-bold">Issue Invoice</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Raw Purchase Modal -->
+    <div id="purchaseModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-white dark:bg-slate-800 rounded-xl shadow-xl max-w-lg w-full p-5 space-y-4 border border-slate-200 dark:border-slate-700">
+            <div class="flex justify-between items-center border-b border-slate-200 dark:border-slate-700 pb-3">
+                <h3 class="text-sm font-bold text-slate-900 dark:text-white">📦 Log Raw Material Purchase Order</h3>
+                <button onclick="closeModal('purchaseModal')" class="text-slate-400 hover:text-slate-600">✕</button>
+            </div>
+            <form onsubmit="handlePurchaseSubmit(event)" class="space-y-3 text-xs">
+                <div>
+                    <label class="block font-semibold mb-1">Select Supplier</label>
+                    <select id="pur-sup-select" required class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg">
+                        <!-- JS Populated -->
+                    </select>
+                </div>
+                <div>
+                    <label class="block font-semibold mb-1">Raw Material Item</label>
+                    <select id="pur-raw-select" required class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg">
+                        <!-- JS Populated -->
+                    </select>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-semibold mb-1">Quantity Received</label>
+                        <input type="number" id="pur-qty" required min="1" step="1" value="500" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block font-semibold mb-1">Unit Purchase Cost (₹)</label>
+                        <input type="number" id="pur-cost" required step="0.1" value="65" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg">
+                    </div>
+                </div>
+                <div>
+                    <label class="block font-semibold mb-1">Payment Term</label>
+                    <select id="pur-paymode" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg">
+                        <option value="Credit">Credit (Add to Supplier Balance)</option>
+                        <option value="Cash">Paid via Cash</option>
+                        <option value="Bank">Paid via Bank</option>
+                    </select>
+                </div>
+                <div class="flex justify-end space-x-2 pt-2">
+                    <button type="button" onclick="closeModal('purchaseModal')" class="px-3 py-2 rounded bg-slate-200 dark:bg-slate-700 font-bold">Cancel</button>
+                    <button type="submit" class="px-4 py-2 rounded bg-brand-600 hover:bg-brand-700 text-white font-bold">Save Purchase</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Factory Expense Modal -->
+    <div id="expenseModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-white dark:bg-slate-800 rounded-xl shadow-xl max-w-md w-full p-5 space-y-4 border border-slate-200 dark:border-slate-700">
+            <div class="flex justify-between items-center border-b border-slate-200 dark:border-slate-700 pb-3">
+                <h3 class="text-sm font-bold text-slate-900 dark:text-white">💸 Log Operational Expense</h3>
+                <button onclick="closeModal('expenseModal')" class="text-slate-400 hover:text-slate-600">✕</button>
+            </div>
+            <form onsubmit="handleExpenseSubmit(event)" class="space-y-3 text-xs">
+                <div>
+                    <label class="block font-semibold mb-1">Expense Category</label>
+                    <select id="exp-cat-select" required class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg">
+                        <option value="Labour / Wages">Labour & Machine Operator Wages</option>
+                        <option value="Electricity / Power">Electricity & Power Bill</option>
+                        <option value="Machine Repair">Machine Die Maintenance & Oil</option>
+                        <option value="Freight / Transport">Freight & Logistics Transport</option>
+                        <option value="Misc">Misc Factory Overhead</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block font-semibold mb-1">Amount (₹)</label>
+                    <input type="number" id="exp-amount" required min="1" step="10" placeholder="1500" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg">
+                </div>
+                <div>
+                    <label class="block font-semibold mb-1">Paid From</label>
+                    <select id="exp-paymode" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg">
+                        <option value="Cash">Physical Cash Book</option>
+                        <option value="Bank">Bank Account</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block font-semibold mb-1">Notes / Description</label>
+                    <input type="text" id="exp-notes" placeholder="Weekly operator wages" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg">
+                </div>
+                <div class="flex justify-end space-x-2 pt-2">
+                    <button type="button" onclick="closeModal('expenseModal')" class="px-3 py-2 rounded bg-slate-200 dark:bg-slate-700 font-bold">Cancel</button>
+                    <button type="submit" class="px-4 py-2 rounded bg-brand-600 hover:bg-brand-700 text-white font-bold">Record Expense</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Cash Bank Transfer Modal -->
+    <div id="transferModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-white dark:bg-slate-800 rounded-xl shadow-xl max-w-md w-full p-5 space-y-4 border border-slate-200 dark:border-slate-700">
+            <div class="flex justify-between items-center border-b border-slate-200 dark:border-slate-700 pb-3">
+                <h3 class="text-sm font-bold text-slate-900 dark:text-white">🔄 Cash ↔ Bank Contra Transfer</h3>
+                <button onclick="closeModal('transferModal')" class="text-slate-400 hover:text-slate-600">✕</button>
+            </div>
+            <form onsubmit="handleTransferSubmit(event)" class="space-y-3 text-xs">
+                <div>
+                    <label class="block font-semibold mb-1">Transfer Direction</label>
+                    <select id="trf-dir" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg">
+                        <option value="BankToCash">Withdraw Bank Cash to Till (Bank ➔ Cash)</option>
+                        <option value="CashToBank">Deposit Cash to Bank Account (Cash ➔ Bank)</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block font-semibold mb-1">Transfer Amount (₹)</label>
+                    <input type="number" id="trf-amount" required min="100" step="100" value="5000" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg">
+                </div>
+                <div class="flex justify-end space-x-2 pt-2">
+                    <button type="button" onclick="closeModal('transferModal')" class="px-3 py-2 rounded bg-slate-200 dark:bg-slate-700 font-bold">Cancel</button>
+                    <button type="submit" class="px-4 py-2 rounded bg-indigo-600 hover:bg-indigo-700 text-white font-bold">Execute Transfer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add Raw Material Modal -->
+    <div id="addRawMaterialModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-white dark:bg-slate-800 rounded-xl shadow-xl max-w-md w-full p-5 space-y-4 border border-slate-200 dark:border-slate-700">
+            <div class="flex justify-between items-center border-b border-slate-200 dark:border-slate-700 pb-3">
+                <h3 class="text-sm font-bold text-slate-900 dark:text-white">+ Add Raw Material Master</h3>
+                <button onclick="closeModal('addRawMaterialModal')" class="text-slate-400 hover:text-slate-600">✕</button>
+            </div>
+            <form onsubmit="handleAddRawMaterial(event)" class="space-y-3 text-xs">
+                <div>
+                    <label class="block font-semibold mb-1">Material Name</label>
+                    <input type="text" id="addraw-name" required placeholder="Kraft Paper Roll 120 GSM" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-semibold mb-1">Category</label>
+                        <select id="addraw-cat" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg">
+                            <option value="Paper Roll">Paper Roll</option>
+                            <option value="PE Film">PE Film</option>
+                            <option value="Packaging">Packaging Box</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block font-semibold mb-1">Unit</label>
+                        <select id="addraw-unit" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg">
+                            <option value="kg">Kilograms (kg)</option>
+                            <option value="Boxes">Boxes</option>
+                            <option value="Meters">Meters</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-semibold mb-1">Initial Stock</label>
+                        <input type="number" id="addraw-stock" required min="0" value="1000" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block font-semibold mb-1">Reorder Level Alert</label>
+                        <input type="number" id="addraw-min" required min="0" value="300" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg">
+                    </div>
+                </div>
+                <div class="flex justify-end space-x-2 pt-2">
+                    <button type="button" onclick="closeModal('addRawMaterialModal')" class="px-3 py-2 rounded bg-slate-200 dark:bg-slate-700 font-bold">Cancel</button>
+                    <button type="submit" class="px-4 py-2 rounded bg-brand-600 hover:bg-brand-700 text-white font-bold">Save Master</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add Supplier Modal -->
+    <div id="addSupplierModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-white dark:bg-slate-800 rounded-xl shadow-xl max-w-md w-full p-5 space-y-4 border border-slate-200 dark:border-slate-700">
+            <div class="flex justify-between items-center border-b border-slate-200 dark:border-slate-700 pb-3">
+                <h3 class="text-sm font-bold text-slate-900 dark:text-white">+ Add Supplier Master</h3>
+                <button onclick="closeModal('addSupplierModal')" class="text-slate-400 hover:text-slate-600">✕</button>
+            </div>
+            <form onsubmit="handleAddSupplier(event)" class="space-y-3 text-xs">
+                <div>
+                    <label class="block font-semibold mb-1">Supplier / Paper Mill Name</label>
+                    <input type="text" id="addsup-name" required placeholder="Star Paper Mill Pvt Ltd" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg">
+                </div>
+                <div>
+                    <label class="block font-semibold mb-1">Phone / Contact</label>
+                    <input type="text" id="addsup-phone" placeholder="+91 98765 43210" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg">
+                </div>
+                <div class="flex justify-end space-x-2 pt-2">
+                    <button type="button" onclick="closeModal('addSupplierModal')" class="px-3 py-2 rounded bg-slate-200 dark:bg-slate-700 font-bold">Cancel</button>
+                    <button type="submit" class="px-4 py-2 rounded bg-brand-600 hover:bg-brand-700 text-white font-bold">Save Supplier</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add Customer Modal -->
+    <div id="addCustomerModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-white dark:bg-slate-800 rounded-xl shadow-xl max-w-md w-full p-5 space-y-4 border border-slate-200 dark:border-slate-700">
+            <div class="flex justify-between items-center border-b border-slate-200 dark:border-slate-700 pb-3">
+                <h3 class="text-sm font-bold text-slate-900 dark:text-white">+ Add Customer / Distributor</h3>
+                <button onclick="closeModal('addCustomerModal')" class="text-slate-400 hover:text-slate-600">✕</button>
+            </div>
+            <form onsubmit="handleAddCustomer(event)" class="space-y-3 text-xs">
+                <div>
+                    <label class="block font-semibold mb-1">Distributor / Shop Name</label>
+                    <input type="text" id="addcust-name" required placeholder="Metro Packaging Traders" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg">
+                </div>
+                <div>
+                    <label class="block font-semibold mb-1">Phone / Contact</label>
+                    <input type="text" id="addcust-phone" placeholder="+91 91234 56789" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg">
+                </div>
+                <div class="flex justify-end space-x-2 pt-2">
+                    <button type="button" onclick="closeModal('addCustomerModal')" class="px-3 py-2 rounded bg-slate-200 dark:bg-slate-700 font-bold">Cancel</button>
+                    <button type="submit" class="px-4 py-2 rounded bg-brand-600 hover:bg-brand-700 text-white font-bold">Save Customer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add Finished Good Variant Modal -->
+    <div id="addFinishedGoodModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-white dark:bg-slate-800 rounded-xl shadow-xl max-w-md w-full p-5 space-y-4 border border-slate-200 dark:border-slate-700">
+            <div class="flex justify-between items-center border-b border-slate-200 dark:border-slate-700 pb-3">
+                <h3 class="text-sm font-bold text-slate-900 dark:text-white">+ Add Finished Plate Variant</h3>
+                <button onclick="closeModal('addFinishedGoodModal')" class="text-slate-400 hover:text-slate-600">✕</button>
+            </div>
+            <form onsubmit="handleAddFinishedGood(event)" class="space-y-3 text-xs">
+                <div>
+                    <label class="block font-semibold mb-1">Variant Display Name</label>
+                    <input type="text" id="addfg-name" required placeholder="8 Inch Printed Diamond Plate" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-semibold mb-1">Size</label>
+                        <select id="addfg-size" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg">
+                            <option value="4 Inch">4 Inch</option>
+                            <option value="6 Inch">6 Inch</option>
+                            <option value="8 Inch">8 Inch</option>
+                            <option value="12 Inch">12 Inch</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block font-semibold mb-1">Finish Type</label>
+                        <select id="addfg-type" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg">
+                            <option value="Wrinkle">Wrinkle</option>
+                            <option value="Silver Laminated">Silver Laminated</option>
+                            <option value="Printed Design">Printed Design</option>
+                            <option value="Gold Craft">Gold Craft</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-semibold mb-1">Rate / 100 Pcs (₹)</label>
+                        <input type="number" id="addfg-rate" required step="0.5" value="45" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block font-semibold mb-1">Initial Stock (Pcs)</label>
+                        <input type="number" id="addfg-stock" required min="0" step="500" value="5000" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg">
+                    </div>
+                </div>
+                <div class="flex justify-end space-x-2 pt-2">
+                    <button type="button" onclick="closeModal('addFinishedGoodModal')" class="px-3 py-2 rounded bg-slate-200 dark:bg-slate-700 font-bold">Cancel</button>
+                    <button type="submit" class="px-4 py-2 rounded bg-brand-600 hover:bg-brand-700 text-white font-bold">Save Variant</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Printable Invoice Modal View -->
+    <div id="invoiceModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-white dark:bg-slate-800 rounded-xl shadow-xl max-w-xl w-full p-6 space-y-4 border border-slate-200 dark:border-slate-700">
+            <div class="flex justify-between items-center border-b border-slate-200 dark:border-slate-700 pb-3">
+                <h3 class="text-sm font-bold text-slate-900 dark:text-white">📄 Tax Invoice / Dispatch Note</h3>
+                <button onclick="closeModal('invoiceModal')" class="text-slate-400 hover:text-slate-600">✕</button>
+            </div>
+            <div id="printable-invoice-content" class="bg-slate-50 dark:bg-slate-900 p-4 rounded-lg border border-slate-200 dark:border-slate-700 text-xs space-y-3 font-mono">
+                <!-- JS populated printable template -->
+            </div>
+            <div class="flex justify-end space-x-2">
+                <button onclick="window.print()" class="px-4 py-2 rounded bg-industrial-800 hover:bg-industrial-900 text-white font-bold text-xs flex items-center space-x-1">
+                    <span>🖨️ Print / Save PDF</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- JavaScript Application Logic -->
+    <script>
+        // Default Master Data State
+        const DEFAULT_STATE = {
+            currentUser: { name: "Admin Manager", role: "Admin Manager" },
+            cashBalance: 28500,
+            bankBalance: 245000,
+            rawMaterials: [
+                { id: "RM-101", name: "Silver Craft Paper Roll 120 GSM", category: "Paper Roll", unit: "kg", stock: 1850, minLevel: 400, cost: 62 },
+                { id: "RM-102", name: "Printed Design Paper Roll 150 GSM", category: "Paper Roll", unit: "kg", stock: 1200, minLevel: 300, cost: 74 },
+                { id: "RM-103", name: "PE Lamination Film 12 Micron", category: "PE Film", unit: "kg", stock: 320, minLevel: 100, cost: 110 },
+                { id: "RM-104", name: "Corrugated Master Packing Boxes", category: "Packaging", unit: "Boxes", stock: 450, minLevel: 150, cost: 35 }
+            ],
+            suppliers: [
+                { id: "SUP-01", name: "Shree Krishna Paper Mill", phone: "+91 98220 11223", balance: 45000 },
+                { id: "SUP-02", name: "Apex Polymer Lamination Ltd", phone: "+91 98900 44556", balance: 12500 }
+            ],
+            customers: [
+                { id: "CUST-01", name: "Royal Caterers & Traders", phone: "+91 94230 88990", balance: 34000 },
+                { id: "CUST-02", name: "Shine Wholesale Packaging", phone: "+91 97650 33221", balance: 18500 },
+                { id: "CUST-03", name: "City Disposable Mart", phone: "+91 91580 77112", balance: 0 }
+            ],
+            finishedGoods: [
+                { id: "FG-6W", name: "6 Inch Wrinkle Silver Plate", size: "6 Inch", type: "Wrinkle", stock: 48000, rate: 32, minLevel: 10000, paperPer1000: 8.5 },
+                { id: "FG-8P", name: "8 Inch Printed Design Plate", size: "8 Inch", type: "Printed Design", stock: 26000, rate: 58, minLevel: 8000, paperPer1000: 14.0 },
+                { id: "FG-12S", name: "12 Inch Heavy Buffet Silver Plate", size: "12 Inch", type: "Silver Laminated", stock: 14000, rate: 115, minLevel: 5000, paperPer1000: 26.5 }
+            ],
+            purchases: [
+                { invNo: "PO-2026-081", date: "2026-08-18", supplierName: "Shree Krishna Paper Mill", itemName: "Silver Craft Paper Roll 120 GSM", qty: 500, cost: 31000, payMode: "Credit" }
+            ],
+            sales: [
+                { invNo: "INV-1042", date: "2026-08-19", customerName: "Royal Caterers & Traders", itemName: "6 Inch Wrinkle Silver Plate", qty: 10000, rate: 32, total: 3200, payMode: "Credit" }
+            ],
+            productionLogs: [
+                { batchId: "BATCH-801", date: "2026-08-20", plateName: "6 Inch Wrinkle Silver Plate", qty: 15000, paperConsumed: 127.5, wastage: 2.1, operator: "Ramesh / Shift A" }
+            ],
+            expenses: [
+                { id: "EXP-301", date: "2026-08-19", cat: "Labour / Wages", amount: 4500, payMode: "Cash", notes: "Weekly machine operator payout" },
+                { id: "EXP-302", date: "2026-08-17", cat: "Electricity / Power", amount: 12400, payMode: "Bank", notes: "Factory power grid bill" }
+            ],
+            journal: [
+                { id: "J-01", date: "2026-08-18", desc: "Raw paper roll purchase on credit", dr: "Raw Materials Stock", cr: "Accounts Payable (Suppliers)", amount: 31000 },
+                { id: "J-02", date: "2026-08-19", desc: "Sales Invoice issued on credit", dr: "Accounts Receivable", cr: "Sales Revenue", amount: 3200 }
+            ]
+        };
+
+        let state = JSON.parse(localStorage.getItem('papercraft_erp_state')) || DEFAULT_STATE;
+
+        // Chart.js Instances
+        let chartProdSalesInstance = null;
+        let chartExpensesInstance = null;
+        let chartStockValuationInstance = null;
+
+        // Initialize Application
+        window.addEventListener('DOMContentLoaded', () => {
+            renderAllViews();
+            initCharts();
+            checkLowStockAlerts();
+            calculateBOMEstimates();
+        });
+
+        function saveState() {
+            localStorage.setItem('papercraft_erp_state', JSON.stringify(state));
+            renderAllViews();
+            updateCharts();
+            checkLowStockAlerts();
+        }
+
+        // Tab Switcher Logic
+        function switchTab(tabId) {
+            document.querySelectorAll('main > section').forEach(sec => sec.classList.add('hidden'));
+            const target = document.getElementById(`section-${tabId}`);
+            if (target) target.classList.remove('hidden');
+
+            document.querySelectorAll('.nav-btn, .mnav-btn').forEach(btn => {
+                btn.classList.remove('bg-industrial-800', 'text-brand-500', 'font-semibold');
+                btn.classList.add('text-slate-300');
+            });
+            const deskBtn = document.getElementById(`nav-${tabId}`);
+            if (deskBtn) deskBtn.classList.add('bg-industrial-800', 'text-brand-500', 'font-semibold');
+        }
+
+        function switchAccTab(subTab) {
+            ['journal', 'coa', 'pnl', 'bs'].forEach(t => {
+                document.getElementById(`subacc-${t}`).classList.add('hidden');
+                document.getElementById(`acctab-${t}`).classList.remove('bg-white', 'dark:bg-slate-800', 'text-brand-600', 'shadow-sm');
+            });
+            document.getElementById(`subacc-${subTab}`).classList.remove('hidden');
+            document.getElementById(`acctab-${subTab}`).classList.add('bg-white', 'dark:bg-slate-800', 'text-brand-600', 'shadow-sm');
+        }
+
+        // Render Functions
+        function renderAllViews() {
+            renderDashboard();
+            renderRawMaterials();
+            renderProcurement();
+            renderProduction();
+            renderFinishedGoods();
+            renderSales();
+            renderFinance();
+            renderAccounting();
+            renderReports();
+            populateModalDropdowns();
+        }
+
+        function renderDashboard() {
+            // Calculate Total Sales
+            const totalSales = state.sales.reduce((acc, s) => acc + (s.total || 0), 0);
+            document.getElementById('dash-kpi-sales').innerText = `₹${totalSales.toLocaleString()}`;
+
+            // Today's Production
+            const todayProd = state.productionLogs.reduce((acc, p) => acc + (p.qty || 0), 0);
+            const totalWastage = state.productionLogs.reduce((acc, p) => acc + (p.wastage || 0), 0);
+            document.getElementById('dash-kpi-prod').innerText = `${todayProd.toLocaleString()} Pcs`;
+            document.getElementById('dash-kpi-wastage').innerText = `Wastage: ${totalWastage.toFixed(1)} kg`;
+
+            // Paper Stock
+            const totalPaper = state.rawMaterials.filter(r => r.unit === 'kg').reduce((acc, r) => acc + r.stock, 0);
+            document.getElementById('dash-kpi-paper').innerText = `${totalPaper.toLocaleString()} kg`;
+
+            // Receivables & Creditors
+            const debtors = state.customers.reduce((acc, c) => acc + c.balance, 0);
+            const creditors = state.suppliers.reduce((acc, s) => acc + s.balance, 0);
+            document.getElementById('dash-kpi-debtors').innerText = `₹${debtors.toLocaleString()}`;
+            document.getElementById('dash-kpi-creditors').innerText = `Suppliers Due: ₹${creditors.toLocaleString()}`;
+
+            // Live Activity Timeline
+            const activityBody = document.getElementById('dash-activity-body');
+            activityBody.innerHTML = '';
+            
+            // Combine recent sales, production & purchases
+            const logs = [
+                ...state.sales.map(s => ({ time: s.date, type: 'Sale', desc: `${s.customerName} - ${s.itemName}`, amt: `₹${s.total}` })),
+                ...state.productionLogs.map(p => ({ time: p.date, type: 'Prod', desc: `Produced ${p.plateName}`, amt: `${p.qty} pcs` })),
+                ...state.purchases.map(pr => ({ time: pr.date, type: 'Purchase', desc: `${pr.supplierName} - ${pr.itemName}`, amt: `₹${pr.cost}` }))
+            ].reverse().slice(0, 5);
+
+            logs.forEach(l => {
+                activityBody.innerHTML += `
+                    <tr>
+                        <td class="py-2.5 px-3 text-slate-400">${l.time}</td>
+                        <td class="py-2.5 px-3 font-bold ${l.type==='Sale'?'text-emerald-600':l.type==='Prod'?'text-blue-600':'text-amber-600'}">${l.type}</td>
+                        <td class="py-2.5 px-3 font-medium text-slate-800 dark:text-slate-200">${l.desc}</td>
+                        <td class="py-2.5 px-3 text-right font-bold text-slate-900 dark:text-white">${l.amt}</td>
+                    </tr>
+                `;
+            });
+        }
+
+        function renderRawMaterials() {
+            const query = document.getElementById('search-raw')?.value.toLowerCase() || '';
+            const tbody = document.getElementById('raw-material-tbl');
+            tbody.innerHTML = '';
+
+            const filtered = state.rawMaterials.filter(r => r.name.toLowerCase().includes(query) || r.category.toLowerCase().includes(query));
+            document.getElementById('raw-count-lbl').innerText = `Showing ${filtered.length} Items`;
+
+            filtered.forEach(r => {
+                const isLow = r.stock <= r.minLevel;
+                tbody.innerHTML += `
+                    <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                        <td class="py-3 px-4 font-bold text-slate-900 dark:text-white">${r.name}<div class="text-[10px] text-slate-400">${r.id}</div></td>
+                        <td class="py-3 px-4">${r.category}</td>
+                        <td class="py-3 px-4 font-bold text-base ${isLow?'text-red-600':'text-slate-800 dark:text-slate-200'}">${r.stock.toLocaleString()} ${r.unit}</td>
+                        <td class="py-3 px-4 text-slate-500">${r.minLevel} ${r.unit}</td>
+                        <td class="py-3 px-4">₹${r.cost} / ${r.unit}</td>
+                        <td class="py-3 px-4">
+                            ${isLow ? '<span class="bg-red-100 text-red-800 text-[10px] px-2 py-0.5 rounded-full font-bold">⚠️ Reorder Low</span>' : '<span class="bg-emerald-100 text-emerald-800 text-[10px] px-2 py-0.5 rounded-full font-bold">Healthy</span>'}
+                        </td>
+                        <td class="py-3 px-4 text-right">
+                            <button onclick="deleteRawMaterial('${r.id}')" class="text-red-500 hover:text-red-700 font-bold">Delete</button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        function renderProcurement() {
+            // Suppliers
+            const supContainer = document.getElementById('supplier-list-container');
+            supContainer.innerHTML = '';
+            state.suppliers.forEach(s => {
+                supContainer.innerHTML += `
+                    <div class="p-3 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700 flex justify-between items-center text-xs">
+                        <div>
+                            <div class="font-bold text-slate-900 dark:text-white">${s.name}</div>
+                            <div class="text-[10px] text-slate-400">${s.phone}</div>
+                        </div>
+                        <div class="text-right">
+                            <div class="font-black text-rose-600">₹${s.balance.toLocaleString()}</div>
+                            <div class="text-[9px] text-slate-400 uppercase">Payable Balance</div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            // Purchases
+            const tbody = document.getElementById('purchases-tbl');
+            tbody.innerHTML = '';
+            state.purchases.forEach(p => {
+                tbody.innerHTML += `
+                    <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                        <td class="py-2.5 px-3 font-bold">${p.invNo}<div class="text-[10px] text-slate-400">${p.date}</div></td>
+                        <td class="py-2.5 px-3">${p.supplierName}</td>
+                        <td class="py-2.5 px-3 font-medium">${p.itemName}</td>
+                        <td class="py-2.5 px-3">${p.qty}</td>
+                        <td class="py-2.5 px-3 font-bold text-slate-900 dark:text-white">₹${p.cost.toLocaleString()}</td>
+                        <td class="py-2.5 px-3"><span class="bg-slate-100 dark:bg-slate-700 px-2 py-0.5 rounded text-[10px]">${p.payMode}</span></td>
+                    </tr>
+                `;
+            });
+        }
+
+        function renderProduction() {
+            const tbody = document.getElementById('production-tbl');
+            tbody.innerHTML = '';
+            state.productionLogs.forEach(p => {
+                tbody.innerHTML += `
+                    <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                        <td class="py-3 px-4 font-bold text-brand-600">${p.batchId}<div class="text-[10px] text-slate-400">${p.date}</div></td>
+                        <td class="py-3 px-4 font-bold text-slate-900 dark:text-white">${p.plateName}</td>
+                        <td class="py-3 px-4 font-black text-slate-900 dark:text-white">${p.qty.toLocaleString()} Pcs</td>
+                        <td class="py-3 px-4 text-amber-600 font-bold">${p.paperConsumed} kg</td>
+                        <td class="py-3 px-4 text-red-500 font-bold">${p.wastage} kg</td>
+                        <td class="py-3 px-4 text-slate-400">${p.operator}</td>
+                    </tr>
+                `;
+            });
+        }
+
+        function renderFinishedGoods() {
+            const query = document.getElementById('search-fg')?.value.toLowerCase() || '';
+            const tbody = document.getElementById('finished-goods-tbl');
+            tbody.innerHTML = '';
+
+            const filtered = state.finishedGoods.filter(f => f.name.toLowerCase().includes(query) || f.size.toLowerCase().includes(query));
+            document.getElementById('fg-count-lbl').innerText = `${filtered.length} Variants Listed`;
+
+            filtered.forEach(f => {
+                const isLow = f.stock <= f.minLevel;
+                tbody.innerHTML += `
+                    <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                        <td class="py-3 px-4 font-bold text-slate-900 dark:text-white">${f.name}<div class="text-[10px] text-slate-400">${f.id}</div></td>
+                        <td class="py-3 px-4">${f.size} (${f.type})</td>
+                        <td class="py-3 px-4 font-black text-base ${isLow?'text-red-600':'text-emerald-600'}">${f.stock.toLocaleString()} Pcs</td>
+                        <td class="py-3 px-4 font-bold">₹${f.rate} / 100 Pcs</td>
+                        <td class="py-3 px-4 text-slate-400">${f.minLevel.toLocaleString()} Pcs</td>
+                        <td class="py-3 px-4 text-right">
+                            <button onclick="deleteFinishedGood('${f.id}')" class="text-red-500 hover:text-red-700 font-bold">Delete</button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        function renderSales() {
+            // Customer Receivables
+            const custContainer = document.getElementById('customer-list-container');
+            custContainer.innerHTML = '';
+            state.customers.forEach(c => {
+                custContainer.innerHTML += `
+                    <div class="p-3 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700 flex justify-between items-center text-xs">
+                        <div>
+                            <div class="font-bold text-slate-900 dark:text-white">${c.name}</div>
+                            <div class="text-[10px] text-slate-400">${c.phone}</div>
+                        </div>
+                        <div class="text-right">
+                            <div class="font-black text-emerald-600">₹${c.balance.toLocaleString()}</div>
+                            <div class="text-[9px] text-slate-400 uppercase">Trade Receivable</div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            // Sales Table
+            const tbody = document.getElementById('sales-tbl');
+            tbody.innerHTML = '';
+            state.sales.forEach((s, idx) => {
+                tbody.innerHTML += `
+                    <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                        <td class="py-2.5 px-3 font-bold text-brand-600">${s.invNo}<div class="text-[10px] text-slate-400">${s.date}</div></td>
+                        <td class="py-2.5 px-3 font-medium">${s.customerName}</td>
+                        <td class="py-2.5 px-3">${s.itemName} (${s.qty} Pcs)</td>
+                        <td class="py-2.5 px-3 font-black text-slate-900 dark:text-white">₹${s.total.toLocaleString()}</td>
+                        <td class="py-2.5 px-3"><span class="bg-emerald-100 text-emerald-800 text-[10px] px-2 py-0.5 rounded font-bold">${s.payMode}</span></td>
+                        <td class="py-2.5 px-3 text-right">
+                            <button onclick="viewInvoiceModal(${idx})" class="text-blue-600 hover:underline font-bold">View Tax Invoice</button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        function renderFinance() {
+            document.getElementById('fin-cash-bal').innerText = `₹${state.cashBalance.toLocaleString()}`;
+            document.getElementById('fin-bank-bal').innerText = `₹${state.bankBalance.toLocaleString()}`;
+
+            const tbody = document.getElementById('expenses-tbl');
+            tbody.innerHTML = '';
+            state.expenses.forEach(e => {
+                tbody.innerHTML += `
+                    <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                        <td class="py-3 px-4 text-slate-400">${e.date}</td>
+                        <td class="py-3 px-4 font-bold text-slate-900 dark:text-white">${e.cat}</td>
+                        <td class="py-3 px-4">${e.notes || '-'}</td>
+                        <td class="py-3 px-4 font-semibold text-slate-600 dark:text-slate-300">${e.payMode}</td>
+                        <td class="py-3 px-4 text-right font-black text-red-600">₹${e.amount.toLocaleString()}</td>
+                    </tr>
+                `;
+            });
+        }
+
+        function renderAccounting() {
+            // Journal Table
+            const tbody = document.getElementById('journal-tbl');
+            tbody.innerHTML = '';
+            state.journal.forEach(j => {
+                tbody.innerHTML += `
+                    <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                        <td class="py-3 px-4 font-bold text-slate-900 dark:text-white">${j.id}<div class="text-[10px] text-slate-400">${j.date}</div></td>
+                        <td class="py-3 px-4">${j.desc}</td>
+                        <td class="py-3 px-4 text-emerald-600 font-bold">${j.dr} (Dr)</td>
+                        <td class="py-3 px-4 text-indigo-600 font-bold">${j.cr} (Cr)</td>
+                        <td class="py-3 px-4 text-right font-black">₹${j.amount.toLocaleString()}</td>
+                    </tr>
+                `;
+            });
+
+            // COA Balances
+            const coaGrid = document.getElementById('coa-grid-container');
+            const totalRawVal = state.rawMaterials.reduce((acc, r) => acc + (r.stock * r.cost), 0);
+            const totalFgVal = state.finishedGoods.reduce((acc, f) => acc + (f.stock * (f.rate/100)), 0);
+
+            coaGrid.innerHTML = `
+                <div class="p-3 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700">
+                    <div class="text-slate-400 text-[10px] font-bold uppercase">Asset</div>
+                    <div class="font-bold text-slate-900 dark:text-white">Cash in Hand</div>
+                    <div class="text-base font-black text-emerald-600 mt-1">₹${state.cashBalance.toLocaleString()}</div>
+                </div>
+                <div class="p-3 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700">
+                    <div class="text-slate-400 text-[10px] font-bold uppercase">Asset</div>
+                    <div class="font-bold text-slate-900 dark:text-white">Bank Balances</div>
+                    <div class="text-base font-black text-emerald-600 mt-1">₹${state.bankBalance.toLocaleString()}</div>
+                </div>
+                <div class="p-3 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700">
+                    <div class="text-slate-400 text-[10px] font-bold uppercase">Asset</div>
+                    <div class="font-bold text-slate-900 dark:text-white">Raw Material Inventory</div>
+                    <div class="text-base font-black text-amber-600 mt-1">₹${totalRawVal.toLocaleString()}</div>
+                </div>
+                <div class="p-3 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700">
+                    <div class="text-slate-400 text-[10px] font-bold uppercase">Asset</div>
+                    <div class="font-bold text-slate-900 dark:text-white">Finished Goods Stock</div>
+                    <div class="text-base font-black text-blue-600 mt-1">₹${totalFgVal.toLocaleString()}</div>
+                </div>
+            `;
+
+            // P&L
+            const rev = state.sales.reduce((acc, s) => acc + s.total, 0);
+            const cogs = rev * 0.62; // Est. 62% material cost
+            const gross = rev - cogs;
+            const expLabour = state.expenses.filter(e => e.cat.includes('Labour')).reduce((acc, e) => acc + e.amount, 0);
+            const expPower = state.expenses.filter(e => e.cat.includes('Electricity')).reduce((acc, e) => acc + e.amount, 0);
+            const expMaint = state.expenses.filter(e => !e.cat.includes('Labour') && !e.cat.includes('Electricity')).reduce((acc, e) => acc + e.amount, 0);
+            const netProfit = gross - (expLabour + expPower + expMaint);
+
+            document.getElementById('pnl-revenue').innerText = `₹${rev.toLocaleString()}`;
+            document.getElementById('pnl-cogs').innerText = `- ₹${cogs.toLocaleString()}`;
+            document.getElementById('pnl-grossprofit').innerText = `₹${gross.toLocaleString()}`;
+            document.getElementById('pnl-exp-labour').innerText = `₹${expLabour.toLocaleString()}`;
+            document.getElementById('pnl-exp-power').innerText = `₹${expPower.toLocaleString()}`;
+            document.getElementById('pnl-exp-maint').innerText = `₹${expMaint.toLocaleString()}`;
+            document.getElementById('pnl-netprofit').innerText = `₹${netProfit.toLocaleString()}`;
+
+            // Balance Sheet
+            const ar = state.customers.reduce((acc, c) => acc + c.balance, 0);
+            const ap = state.suppliers.reduce((acc, s) => acc + s.balance, 0);
+            const totalAssets = state.cashBalance + state.bankBalance + ar + totalRawVal + totalFgVal;
+
+            document.getElementById('bs-asset-cash').innerText = `₹${state.cashBalance.toLocaleString()}`;
+            document.getElementById('bs-asset-bank').innerText = `₹${state.bankBalance.toLocaleString()}`;
+            document.getElementById('bs-asset-ar').innerText = `₹${ar.toLocaleString()}`;
+            document.getElementById('bs-asset-raw').innerText = `₹${totalRawVal.toLocaleString()}`;
+            document.getElementById('bs-asset-fg').innerText = `₹${totalFgVal.toLocaleString()}`;
+            document.getElementById('bs-asset-total').innerText = `₹${totalAssets.toLocaleString()}`;
+
+            document.getElementById('bs-liab-ap').innerText = `₹${ap.toLocaleString()}`;
+            document.getElementById('bs-equity-retained').innerText = `₹${netProfit.toLocaleString()}`;
+            document.getElementById('bs-liab-total').innerText = `₹${(ap + 500000 + netProfit).toLocaleString()}`;
+        }
+
+        function renderReports() {
+            const tbody = document.getElementById('profitability-tbl');
+            tbody.innerHTML = '';
+            state.finishedGoods.forEach(f => {
+                const estCost100 = (f.paperPer1000 * 0.1) * 65; // Est paper cost @65/kg
+                const margin = f.rate - estCost100;
+                tbody.innerHTML += `
+                    <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                        <td class="py-2 px-3 font-bold text-slate-900 dark:text-white">${f.name}</td>
+                        <td class="py-2 px-3">₹${f.rate}</td>
+                        <td class="py-2 px-3 text-slate-500">₹${estCost100.toFixed(1)}</td>
+                        <td class="py-2 px-3 font-extrabold text-emerald-600">₹${margin.toFixed(1)} / 100 Pcs</td>
+                    </tr>
+                `;
+            });
+        }
+
+        function populateModalDropdowns() {
+            // Production FG Dropdown
+            const prodFg = document.getElementById('prod-fg-select');
+            const bomCalc = document.getElementById('bom-calc-fg');
+            const saleFg = document.getElementById('sale-fg-select');
+            
+            [prodFg, bomCalc, saleFg].forEach(select => {
+                if (!select) return;
+                select.innerHTML = '';
+                state.finishedGoods.forEach(f => {
+                    select.innerHTML += `<option value="${f.id}">${f.name} (${f.stock} Pcs in stock)</option>`;
+                });
+            });
+
+            // Supplier dropdown
+            const purSup = document.getElementById('pur-sup-select');
+            if (purSup) {
+                purSup.innerHTML = '';
+                state.suppliers.forEach(s => {
+                    purSup.innerHTML += `<option value="${s.name}">${s.name}</option>`;
+                });
+            }
+
+            // Raw Mat dropdown
+            const purRaw = document.getElementById('pur-raw-select');
+            if (purRaw) {
+                purRaw.innerHTML = '';
+                state.rawMaterials.forEach(r => {
+                    purRaw.innerHTML += `<option value="${r.id}">${r.name}</option>`;
+                });
+            }
+
+            // Customer dropdown
+            const saleCust = document.getElementById('sale-cust-select');
+            if (saleCust) {
+                saleCust.innerHTML = '';
+                state.customers.forEach(c => {
+                    saleCust.innerHTML += `<option value="${c.name}">${c.name}</option>`;
+                });
+            }
+
+            updateSaleRatePreview();
+        }
+
+        function calculateBOMEstimates() {
+            const fgId = document.getElementById('bom-calc-fg')?.value;
+            const targetQty = parseFloat(document.getElementById('bom-calc-qty')?.value) || 0;
+            const item = state.finishedGoods.find(f => f.id === fgId) || state.finishedGoods[0];
+
+            if (item) {
+                const requiredPaperKg = (targetQty / 1000) * item.paperPer1000;
+                const requiredBoxes = Math.ceil(targetQty / 2000);
+                document.getElementById('bom-res-paper').innerText = `Paper Roll Required: ${requiredPaperKg.toFixed(1)} kg`;
+                document.getElementById('bom-res-boxes').innerText = `Packing Boxes Required: ${requiredBoxes} Boxes`;
+            }
+        }
+
+        function updateSaleRatePreview() {
+            const fgId = document.getElementById('sale-fg-select')?.value;
+            const qty = parseFloat(document.getElementById('sale-qty')?.value) || 0;
+            const fgItem = state.finishedGoods.find(f => f.id === fgId);
+            
+            if (fgItem) {
+                const rateField = document.getElementById('sale-rate');
+                if (document.activeElement !== rateField) {
+                    rateField.value = fgItem.rate;
+                }
+                const rate = parseFloat(rateField.value) || fgItem.rate;
+                const total = (qty / 100) * rate;
+                document.getElementById('sale-total-preview').innerText = `₹${total.toLocaleString()}`;
+            }
+        }
+
+        // Action Handlers
+        function handleProductionSubmit(e) {
+            e.preventDefault();
+            const fgId = document.getElementById('prod-fg-select').value;
+            const qty = parseFloat(document.getElementById('prod-qty').value);
+            const wastage = parseFloat(document.getElementById('prod-wastage').value);
+            const operator = document.getElementById('prod-note').value || 'Shift Operator';
+
+            const fgItem = state.finishedGoods.find(f => f.id === fgId);
+            if (!fgItem) return;
+
+            // Compute paper roll consumption
+            const paperConsumed = (qty / 1000) * fgItem.paperPer1000;
+            
+            // Deduct raw material paper
+            const paperRaw = state.rawMaterials.find(r => r.category === 'Paper Roll');
+            if (paperRaw) {
+                paperRaw.stock = Math.max(0, paperRaw.stock - Math.round(paperConsumed));
+            }
+
+            // Increment finished goods stock
+            fgItem.stock += qty;
+
+            // Log Production entry
+            const batchId = `BATCH-${Math.floor(100 + Math.random() * 900)}`;
+            const today = new Date().toISOString().split('T')[0];
+
+            state.productionLogs.unshift({
+                batchId,
+                date: today,
+                plateName: fgItem.name,
+                qty,
+                paperConsumed: parseFloat(paperConsumed.toFixed(1)),
+                wastage,
+                operator
+            });
+
+            // Log Journal Entry
+            state.journal.unshift({
+                id: `J-${state.journal.length + 1}`,
+                date: today,
+                desc: `Manufacturing Run ${batchId} - ${fgItem.name}`,
+                dr: 'Finished Goods Inventory',
+                cr: 'Raw Materials Consumed',
+                amount: Math.round(paperConsumed * 65)
+            });
+
+            saveState();
+            closeModal('productionModal');
+            alert(`Production Run ${batchId} logged successfully! Finished goods stock increased by ${qty} Pcs.`);
+        }
+
+        function handleSalesSubmit(e) {
+            e.preventDefault();
+            const customerName = document.getElementById('sale-cust-select').value;
+            const fgId = document.getElementById('sale-fg-select').value;
+            const qty = parseFloat(document.getElementById('sale-qty').value);
+            const rate = parseFloat(document.getElementById('sale-rate').value);
+            const payMode = document.getElementById('sale-paymode').value;
+
+            const fgItem = state.finishedGoods.find(f => f.id === fgId);
+            if (!fgItem) return;
+
+            if (fgItem.stock < qty) {
+                alert(`Insufficient finished goods stock! Only ${fgItem.stock} Pcs available.`);
+                return;
+            }
+
+            const total = (qty / 100) * rate;
+            fgItem.stock -= qty;
+
+            if (payMode === 'Credit') {
+                const cust = state.customers.find(c => c.name === customerName);
+                if (cust) cust.balance += total;
+            } else if (payMode === 'Cash') {
+                state.cashBalance += total;
+            } else if (payMode === 'Bank') {
+                state.bankBalance += total;
+            }
+
+            const invNo = `INV-${Math.floor(1000 + Math.random() * 9000)}`;
+            const today = new Date().toISOString().split('T')[0];
+
+            state.sales.unshift({
+                invNo,
+                date: today,
+                customerName,
+                itemName: fgItem.name,
+                qty,
+                rate,
+                total,
+                payMode
+            });
+
+            state.journal.unshift({
+                id: `J-${state.journal.length + 1}`,
+                date: today,
+                desc: `Sales Invoice ${invNo} to ${customerName}`,
+                dr: payMode === 'Credit' ? 'Accounts Receivable' : payMode === 'Cash' ? 'Cash in Hand' : 'Bank Balance',
+                cr: 'Sales Revenue',
+                amount: total
+            });
+
+            saveState();
+            closeModal('salesModal');
+            alert(`Invoice ${invNo} created! Amount: ₹${total.toLocaleString()}`);
+        }
+
+        function handlePurchaseSubmit(e) {
+            e.preventDefault();
+            const supplierName = document.getElementById('pur-sup-select').value;
+            const rawId = document.getElementById('pur-raw-select').value;
+            const qty = parseFloat(document.getElementById('pur-qty').value);
+            const unitCost = parseFloat(document.getElementById('pur-cost').value);
+            const payMode = document.getElementById('pur-paymode').value;
+
+            const rawItem = state.rawMaterials.find(r => r.id === rawId);
+            if (!rawItem) return;
+
+            const totalCost = qty * unitCost;
+            rawItem.stock += qty;
+
+            if (payMode === 'Credit') {
+                const sup = state.suppliers.find(s => s.name === supplierName);
+                if (sup) sup.balance += totalCost;
+            } else if (payMode === 'Cash') {
+                state.cashBalance -= totalCost;
+            } else if (payMode === 'Bank') {
+                state.bankBalance -= totalCost;
+            }
+
+            const invNo = `PO-2026-${Math.floor(100 + Math.random() * 900)}`;
+            const today = new Date().toISOString().split('T')[0];
+
+            state.purchases.unshift({
+                invNo,
+                date: today,
+                supplierName,
+                itemName: rawItem.name,
+                qty,
+                cost: totalCost,
+                payMode
+            });
+
+            state.journal.unshift({
+                id: `J-${state.journal.length + 1}`,
+                date: today,
+                desc: `Purchase PO ${invNo} from ${supplierName}`,
+                dr: 'Raw Materials Inventory',
+                cr: payMode === 'Credit' ? 'Accounts Payable' : 'Cash/Bank',
+                amount: totalCost
+            });
+
+            saveState();
+            closeModal('purchaseModal');
+            alert(`Purchase order ${invNo} logged! Raw stock increased.`);
+        }
+
+        function handleExpenseSubmit(e) {
+            e.preventDefault();
+            const cat = document.getElementById('exp-cat-select').value;
+            const amount = parseFloat(document.getElementById('exp-amount').value);
+            const payMode = document.getElementById('exp-paymode').value;
+            const notes = document.getElementById('exp-notes').value;
+
+            if (payMode === 'Cash') state.cashBalance -= amount;
+            else state.bankBalance -= amount;
+
+            const today = new Date().toISOString().split('T')[0];
+
+            state.expenses.unshift({
+                id: `EXP-${Math.floor(100 + Math.random() * 900)}`,
+                date: today,
+                cat,
+                amount,
+                payMode,
+                notes
+            });
+
+            state.journal.unshift({
+                id: `J-${state.journal.length + 1}`,
+                date: today,
+                desc: `Expense payout - ${cat}`,
+                dr: `Factory Expense (${cat})`,
+                cr: payMode === 'Cash' ? 'Cash in Hand' : 'Bank Balance',
+                amount
+            });
+
+            saveState();
+            closeModal('expenseModal');
+        }
+
+        function handleTransferSubmit(e) {
+            e.preventDefault();
+            const dir = document.getElementById('trf-dir').value;
+            const amt = parseFloat(document.getElementById('trf-amount').value);
+
+            if (dir === 'BankToCash') {
+                state.bankBalance -= amt;
+                state.cashBalance += amt;
+            } else {
+                state.cashBalance -= amt;
+                state.bankBalance += amt;
+            }
+
+            saveState();
+            closeModal('transferModal');
+            alert(`Transfer of ₹${amt.toLocaleString()} processed successfully.`);
+        }
+
+        function handleAddRawMaterial(e) {
+            e.preventDefault();
+            const name = document.getElementById('addraw-name').value;
+            const category = document.getElementById('addraw-cat').value;
+            const unit = document.getElementById('addraw-unit').value;
+            const stock = parseFloat(document.getElementById('addraw-stock').value);
+            const minLevel = parseFloat(document.getElementById('addraw-min').value);
+
+            state.rawMaterials.push({
+                id: `RM-${Math.floor(100 + Math.random() * 900)}`,
+                name,
+                category,
+                unit,
+                stock,
+                minLevel,
+                cost: 65
+            });
+
+            saveState();
+            closeModal('addRawMaterialModal');
+        }
+
+        function handleAddSupplier(e) {
+            e.preventDefault();
+            const name = document.getElementById('addsup-name').value;
+            const phone = document.getElementById('addsup-phone').value;
+
+            state.suppliers.push({
+                id: `SUP-${Math.floor(10 + Math.random() * 90)}`,
+                name,
+                phone,
+                balance: 0
+            });
+
+            saveState();
+            closeModal('addSupplierModal');
+        }
+
+        function handleAddCustomer(e) {
+            e.preventDefault();
+            const name = document.getElementById('addcust-name').value;
+            const phone = document.getElementById('addcust-phone').value;
+
+            state.customers.push({
+                id: `CUST-${Math.floor(10 + Math.random() * 90)}`,
+                name,
+                phone,
+                balance: 0
+            });
+
+            saveState();
+            closeModal('addCustomerModal');
+        }
+
+        function handleAddFinishedGood(e) {
+            e.preventDefault();
+            const name = document.getElementById('addfg-name').value;
+            const size = document.getElementById('addfg-size').value;
+            const type = document.getElementById('addfg-type').value;
+            const rate = parseFloat(document.getElementById('addfg-rate').value);
+            const stock = parseFloat(document.getElementById('addfg-stock').value);
+
+            state.finishedGoods.push({
+                id: `FG-${Math.floor(100 + Math.random() * 900)}`,
+                name,
+                size,
+                type,
+                stock,
+                rate,
+                minLevel: 5000,
+                paperPer1000: size.includes('12') ? 26 : size.includes('8') ? 14 : 8.5
+            });
+
+            saveState();
+            closeModal('addFinishedGoodModal');
+        }
+
+        function deleteRawMaterial(id) {
+            if (confirm('Are you sure you want to delete this raw material item?')) {
+                state.rawMaterials = state.rawMaterials.filter(r => r.id !== id);
+                saveState();
+            }
+        }
+
+        function deleteFinishedGood(id) {
+            if (confirm('Delete this finished plate variant?')) {
+                state.finishedGoods = state.finishedGoods.filter(f => f.id !== id);
+                saveState();
+            }
+        }
+
+        function viewInvoiceModal(index) {
+            const sale = state.sales[index];
+            if (!sale) return;
+
+            const content = document.getElementById('printable-invoice-content');
+            content.innerHTML = `
+                <div class="flex justify-between border-b pb-2 font-bold text-sm text-slate-900 dark:text-white">
+                    <span>🏭 PAPERCRAFT MANUFACTURING PLANT</span>
+                    <span>TAX INVOICE</span>
+                </div>
+                <div class="grid grid-cols-2 gap-2 pt-2">
+                    <div>
+                        <div class="text-slate-400">Invoice Number:</div>
+                        <div class="font-bold">${sale.invNo}</div>
+                    </div>
+                    <div>
+                        <div class="text-slate-400">Invoice Date:</div>
+                        <div>${sale.date}</div>
+                    </div>
+                </div>
+                <div class="border-t border-b py-2">
+                    <div class="text-slate-400">Billed To (Distributor):</div>
+                    <div class="font-bold text-slate-900 dark:text-white">${sale.customerName}</div>
+                </div>
+                <table class="w-full text-left mt-2">
+                    <thead class="border-b text-slate-400">
+                        <tr><th>Description</th><th>Qty</th><th>Rate/100</th><th class="text-right">Total</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="py-1">${sale.itemName}</td>
+                            <td>${sale.qty.toLocaleString()} Pcs</td>
+                            <td>₹${sale.rate}</td>
+                            <td class="text-right font-bold">₹${sale.total.toLocaleString()}</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div class="flex justify-between border-t pt-2 font-bold text-sm">
+                    <span>Grand Total:</span>
+                    <span>₹${sale.total.toLocaleString()}</span>
+                </div>
+            `;
+            openModal('invoiceModal');
+        }
+
+        function checkLowStockAlerts() {
+            const lowRaw = state.rawMaterials.filter(r => r.stock <= r.minLevel);
+            const lowFg = state.finishedGoods.filter(f => f.stock <= f.minLevel);
+            const banner = document.getElementById('low-stock-banner');
+
+            if (lowRaw.length > 0 || lowFg.length > 0) {
+                banner.classList.remove('hidden');
+                document.getElementById('low-stock-msg').innerText = 
+                    `Attention: ${lowRaw.length} raw material(s) and ${lowFg.length} finished plate variant(s) are below safety buffers!`;
+                document.getElementById('dash-kpi-stock-status').innerText = 'Status: Low Stock Alert';
+                document.getElementById('dash-kpi-stock-status').className = 'text-xs text-red-600 font-bold mt-1';
+            } else {
+                banner.classList.add('hidden');
+                document.getElementById('dash-kpi-stock-status').innerText = 'Status: Healthy';
+                document.getElementById('dash-kpi-stock-status').className = 'text-xs text-emerald-600 font-bold mt-1';
+            }
+        }
+
+        // Chart Initialization
+        function initCharts() {
+            // Chart 1: Production vs Sales Trend
+            const ctx1 = document.getElementById('chartProdSales')?.getContext('2d');
+            if (ctx1) {
+                chartProdSalesInstance = new Chart(ctx1, {
+                    type: 'bar',
+                    data: {
+                        labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                        datasets: [
+                            { label: 'Production (Pcs)', data: [12000, 18000, 15000, 22000, 19000, 25000, 14000], backgroundColor: '#22c55e' },
+                            { label: 'Sales Shipped (Pcs)', data: [10000, 15000, 12000, 18000, 20000, 21000, 11000], backgroundColor: '#3b82f6' }
+                        ]
+                    },
+                    options: { responsive: true, maintainAspectRatio: false }
+                });
+            }
+
+            // Chart 2: Expense Allocation
+            const ctx2 = document.getElementById('chartExpenses')?.getContext('2d');
+            if (ctx2) {
+                chartExpensesInstance = new Chart(ctx2, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Labour & Wages', 'Power & Grid', 'Machine Maintenance', 'Freight Transport'],
+                        datasets: [{ data: [18000, 12400, 4500, 6200], backgroundColor: ['#10b981', '#f59e0b', '#ef4444', '#6366f1'] }]
+                    },
+                    options: { responsive: true, maintainAspectRatio: false }
+                });
+            }
+
+            // Chart 3: Stock Valuation
+            const ctx3 = document.getElementById('chartStockValuation')?.getContext('2d');
+            if (ctx3) {
+                chartStockValuationInstance = new Chart(ctx3, {
+                    type: 'bar',
+                    data: {
+                        labels: ['Raw Paper Rolls', 'PE Film Rolls', 'Finished Goods Stock'],
+                        datasets: [{ label: 'Capital Value (₹)', data: [114700, 35200, 312000], backgroundColor: ['#f59e0b', '#3b82f6', '#10b981'] }]
+                    },
+                    options: { responsive: true, maintainAspectRatio: false }
+                });
+            }
+        }
+
+        function updateCharts() {
+            if (chartExpensesInstance) {
+                const expLabour = state.expenses.filter(e => e.cat.includes('Labour')).reduce((acc, e) => acc + e.amount, 0);
+                const expPower = state.expenses.filter(e => e.cat.includes('Electricity')).reduce((acc, e) => acc + e.amount, 0);
+                const expMaint = state.expenses.filter(e => e.cat.includes('Repair')).reduce((acc, e) => acc + e.amount, 0);
+                const expFreight = state.expenses.filter(e => e.cat.includes('Freight')).reduce((acc, e) => acc + e.amount, 0);
+
+                chartExpensesInstance.data.datasets[0].data = [expLabour || 1000, expPower || 1000, expMaint || 1000, expFreight || 1000];
+                chartExpensesInstance.update();
+            }
+        }
+
+        // System Settings Helpers
+        function changeUserRole() {
+            const role = document.getElementById('user-role-select').value;
+            state.currentUser.role = role;
+            document.getElementById('lbl-active-user').innerText = role;
+            alert(`Switched active user permissions to: ${role}`);
+        }
+
+        function toggleDarkMode() {
+            document.documentElement.classList.toggle('dark');
+            const icon = document.getElementById('dark-mode-icon');
+            if (icon) icon.innerText = document.documentElement.classList.contains('dark') ? '☀️' : '🌙';
+        }
+
+        function closeModal(id) { document.getElementById(id)?.classList.add('hidden'); }
+        function openModal(id) { document.getElementById(id)?.classList.remove('hidden'); }
+
+        function exportDataBackup() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(state));
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", `PaperCraft_ERP_Backup_${new Date().toISOString().split('T')[0]}.json`);
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+        }
+
+        function resetToSampleData() {
+            if (confirm('Reset all transactions back to default factory demo state?')) {
+                state = JSON.parse(JSON.stringify(DEFAULT_STATE));
+                saveState();
+                location.reload();
+            }
+        }
+    </script>
+</body>
+</html>
